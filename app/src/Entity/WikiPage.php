@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\WikiPageRepository;
+use App\Entity\Utilisateurs;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -23,7 +24,7 @@ class WikiPage
 
     #[ORM\ManyToOne(inversedBy: 'wikiPages')]
     #[ORM\JoinColumn(nullable: true)]
-    private ?User $owner = null;
+    private ?Utilisateurs $owner = null;
 
     #[ORM\ManyToOne(targetEntity: WikiPage::class, inversedBy: 'children')]
     #[ORM\JoinColumn(nullable: true)]
@@ -70,12 +71,12 @@ class WikiPage
         return $this;
     }
 
-    public function getOwner(): ?User
+    public function getOwner(): ?Utilisateurs
     {
         return $this->owner;
     }
 
-    public function setOwner(?User $owner): static
+    public function setOwner(?Utilisateurs $owner): static
     {
         $this->owner = $owner;
 

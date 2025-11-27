@@ -2,11 +2,11 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
+use App\Entity\Utilisateurs;
 use App\Entity\WikiPage;
 use App\Form\UserType;
 use App\Form\WikiPageType;
-use App\Repository\UserRepository;
+use App\Repository\UtilisateursRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +18,7 @@ class UserController extends AbstractController
     #[Route('/register', name: 'app_user_register')]
     public function register(Request $request, EntityManagerInterface $em): Response
     {
-        $user = new User();
+        $user = new Utilisateurs();
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
@@ -34,15 +34,15 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/u/{username}', name: 'app_user_public', methods: ['GET', 'POST'])]
+    #[Route('/u/{email}', name: 'app_user_public', methods: ['GET', 'POST'])]
     public function publicPage(
-        string $username,
-        UserRepository $userRepository,
+        string $email,
+        UtilisateursRepository $userRepository,
         Request $request,
         EntityManagerInterface $em
     ): Response
     {
-        $user = $userRepository->findOneBy(['username' => $username]);
+        $user = $userRepository->findOneBy(['email' => $email]);
 
         if (!$user) {
             throw $this->createNotFoundException('Utilisateur introuvable');
@@ -74,7 +74,7 @@ class UserController extends AbstractController
             $em->persist($wiki);
             $em->flush();
 
-            return $this->redirectToRoute('app_user_public', ['username' => $user->getUsername()]);
+            return $this->redirectToRoute('app_user_public', ['email' => $user->getEmail()]);
         }
 
         $wikis = $user->getWikiPages();

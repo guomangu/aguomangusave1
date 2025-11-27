@@ -45,20 +45,22 @@
                 {% endif %}
             </div>
 
-            {# --- FORMULAIRE DE CREATION D'ARTICLE --- #}
-            <div class="mt-8 border-t pt-6">
-                <h2 class="text-xl font-semibold mb-4">Ajouter un article</h2>
-                {{ form_start(articleForm) }}
-                    <div class="space-y-4">
-                        {{ form_row(articleForm.title) }}
-                        {{ form_row(articleForm.content) }}
-                        {{ form_row(articleForm.imageFile) }}
-                    </div>
-                    <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Enregistrer l’article
-                    </button>
-                {{ form_end(articleForm) }}
-            </div>
+            {% if isOwner and articleForm is not null %}
+                {# --- FORMULAIRE DE CREATION D'ARTICLE (réservé au propriétaire) --- #}
+                <div class="mt-8 border-t pt-6">
+                    <h2 class="text-xl font-semibold mb-4">Ajouter un article</h2>
+                    {{ form_start(articleForm) }}
+                        <div class="space-y-4">
+                            {{ form_row(articleForm.title) }}
+                            {{ form_row(articleForm.content) }}
+                            {{ form_row(articleForm.imageFile) }}
+                        </div>
+                        <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Enregistrer l’article
+                        </button>
+                    {{ form_end(articleForm) }}
+                </div>
+            {% endif %}
 
             {# --- LISTE DES WIKIS ENFANTS --- #}
             <div class="mt-10 border-t pt-6">
@@ -81,29 +83,33 @@
                 {% endif %}
             </div>
 
-            {# --- FORMULAIRE DE CREATION DE WIKI ENFANT --- #}
-            <div class="mt-8 border-t pt-6">
-                <h2 class="text-xl font-semibold mb-4">Créer un wiki enfant</h2>
-                {{ form_start(childWikiForm) }}
-                    <div class="space-y-4">
-                        {{ form_row(childWikiForm.title) }}
-                        {{ form_row(childWikiForm.imageFile) }}
-                    </div>
-                    <button class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        Créer le wiki enfant
-                    </button>
-                {{ form_end(childWikiForm) }}
-            </div>
+            {% if isOwner and childWikiForm is not null %}
+                {# --- FORMULAIRE DE CREATION DE WIKI ENFANT (réservé au propriétaire) --- #}
+                <div class="mt-8 border-t pt-6">
+                    <h2 class="text-xl font-semibold mb-4">Créer un wiki enfant</h2>
+                    {{ form_start(childWikiForm) }}
+                        <div class="space-y-4">
+                            {{ form_row(childWikiForm.title) }}
+                            {{ form_row(childWikiForm.imageFile) }}
+                        </div>
+                        <button class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Créer le wiki enfant
+                        </button>
+                    {{ form_end(childWikiForm) }}
+                </div>
+            {% endif %}
 
-            {# --- BOUTON DELETE (Invisible pour les visiteurs si tu ajoutes une condition is_granted) --- #}
-            <div class="flex justify-end mb-4 mt-6">
-                <form method="post" action="{{ path('app_wiki_delete', {'id': page.id}) }}" onsubmit="return confirm('Sûr de vouloir supprimer ça ?');">
-                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ page.id) }}">
-                    <button class="text-red-500 hover:text-red-700 text-sm font-bold underline">
-                        Supprimer cette page 🗑️
-                    </button>
-                </form>
-            </div>
+            {% if isOwner %}
+                {# --- BOUTON DELETE (réservé au propriétaire) --- #}
+                <div class="flex justify-end mb-4 mt-6">
+                    <form method="post" action="{{ path('app_wiki_delete', {'id': page.id}) }}" onsubmit="return confirm('Sûr de vouloir supprimer ça ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ page.id) }}">
+                        <button class="text-red-500 hover:text-red-700 text-sm font-bold underline">
+                            Supprimer cette page 🗑️
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
         {% endblock %}
 
     </twig:WikiCard>

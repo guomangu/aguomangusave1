@@ -17,13 +17,46 @@
                 <div class="text-lg font-bold text-gray-800">
                     Mon Wiki
                 </div>
-                <nav class="space-x-4">
+                <nav class="space-x-3 flex items-center">
                     <a href="{{ path('app_wiki_index') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">wiki</button>
+                        <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                            Wiki public
+                        </button>
                     </a>
                     <a href="{{ path('admin') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">admin</button>
+                        <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                            Admin
+                        </button>
                     </a>
+
+                    <span class="h-6 w-px bg-gray-300 mx-1"></span>
+
+                    {% if app.user %}
+                        <span class="text-xs text-gray-500">
+                            Connecté : {{ app.user.email }}
+                        </span>
+                        <a href="{{ path('app_user_public', { email: app.user.email }) }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Mon espace
+                            </button>
+                        </a>
+                        <a href="{{ path('app_logout') }}" class="text-sm font-medium text-gray-700 hover:text-red-600">
+                            <button class="bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600">
+                                Déconnexion
+                            </button>
+                        </a>
+                    {% else %}
+                        <a href="{{ path('app_login') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Connexion
+                            </button>
+                        </a>
+                        <a href="{{ path('app_register') }}" class="text-sm font-medium text-gray-700 hover:text-green-600">
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                                Créer un compte
+                            </button>
+                        </a>
+                    {% endif %}
                 </nav>
             </div>
         </header>

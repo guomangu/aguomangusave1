@@ -97,67 +97,76 @@ class WikiController extends AbstractController
         // Il fait tout seul le "SELECT * FROM wiki_page WHERE id = ..."
         // Si l'id n'existe pas, il renvoie une erreur 404 tout seul.
 
-        // Formulaire pour ajouter un article enfant
-        $article = new Article();
-        $article->setWikiPage($wikiPage);
-        $articleForm = $this->createForm(ArticleType::class, $article);
-        $articleForm->handleRequest($request);
+        $currentUser = $this->getUser();
+        $isOwner = $currentUser && $wikiPage->getOwner() && $wikiPage->getOwner() === $currentUser;
 
-        if ($articleForm->isSubmitted() && $articleForm->isValid()) {
-            $imageFile = $articleForm->get('imageFile')->getData();
-            if ($imageFile) {
-                $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/articles';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0775, true);
+        // Formulaire pour ajouter un article enfant (réservé au propriétaire)
+        $articleForm = null;
+        $childForm = null;
+
+        if ($isOwner) {
+            $article = new Article();
+            $article->setWikiPage($wikiPage);
+            $articleForm = $this->createForm(ArticleType::class, $article);
+            $articleForm->handleRequest($request);
+
+            if ($articleForm->isSubmitted() && $articleForm->isValid()) {
+                $imageFile = $articleForm->get('imageFile')->getData();
+                if ($imageFile) {
+                    $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/articles';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0775, true);
+                    }
+
+                    $newFilename = uniqid('article_', true) . '.' . $imageFile->guessExtension();
+                    $imageFile->move($uploadDir, $newFilename);
+                    $article->setImage('/uploads/articles/' . $newFilename);
                 }
 
-                $newFilename = uniqid('article_', true) . '.' . $imageFile->guessExtension();
-                $imageFile->move($uploadDir, $newFilename);
-                $article->setImage('/uploads/articles/' . $newFilename);
+                $em->persist($article);
+                $em->flush();
+
+                return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
             }
 
-            $em->persist($article);
-            $em->flush();
+            // Formulaire pour ajouter un wiki enfant (réservé au propriétaire)
+            $childWiki = new WikiPage();
+            $childForm = $this->createForm(WikiPageType::class, $childWiki);
+            $childForm->handleRequest($request);
 
-            return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
-        }
+            if ($childForm->isSubmitted() && $childForm->isValid()) {
+                // même propriétaire que le parent
+                $childWiki->setOwner($wikiPage->getOwner());
+                $childWiki->setParent($wikiPage);
 
-        // Formulaire pour ajouter un wiki enfant
-        $childWiki = new WikiPage();
-        $childForm = $this->createForm(WikiPageType::class, $childWiki);
-        $childForm->handleRequest($request);
-
-        if ($childForm->isSubmitted() && $childForm->isValid()) {
-            // même propriétaire que le parent
-            $childWiki->setOwner($wikiPage->getOwner());
-            $childWiki->setParent($wikiPage);
-
-            if (method_exists($childWiki, 'setCreatedAt')) {
-                $childWiki->setCreatedAt(new \DateTimeImmutable());
-            }
-
-            $imageFile = $childForm->get('imageFile')->getData();
-            if ($imageFile) {
-                $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/wiki';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0775, true);
+                if (method_exists($childWiki, 'setCreatedAt')) {
+                    $childWiki->setCreatedAt(new \DateTimeImmutable());
                 }
 
-                $newFilename = uniqid('wiki_', true) . '.' . $imageFile->guessExtension();
-                $imageFile->move($uploadDir, $newFilename);
-                $childWiki->setImage('/uploads/wiki/' . $newFilename);
+                $imageFile = $childForm->get('imageFile')->getData();
+                if ($imageFile) {
+                    $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/wiki';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0775, true);
+                    }
+
+                    $newFilename = uniqid('wiki_', true) . '.' . $imageFile->guessExtension();
+                    $imageFile->move($uploadDir, $newFilename);
+                    $childWiki->setImage('/uploads/wiki/' . $newFilename);
+                }
+
+                $em->persist($childWiki);
+                $em->flush();
+
+                return $this->redirectToRoute('app_wiki_show', ['id' => $childWiki->getId()]);
             }
-
-            $em->persist($childWiki);
-            $em->flush();
-
-            return $this->redirectToRoute('app_wiki_show', ['id' => $childWiki->getId()]);
         }
 
         return $this->render('wiki/index.html.twig', [
             'page' => $wikiPage,
             'articleForm' => $articleForm,
             'childWikiForm' => $childForm,
+            'isOwner' => $isOwner,
         ]);
     }
     
