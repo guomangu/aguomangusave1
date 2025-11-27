@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Profil de {{ user.email }}{% endblock %}
+{% block title %}Profil de {{ user.displayName }}{% endblock %}
 
 {% block body %}
 
@@ -8,13 +8,46 @@
         <h1 class="text-2xl font-bold mb-4">Profil public</h1>
 
         <p class="mt-2 text-gray-600">
-            <span class="font-semibold">Email :</span>
-            {{ user.email }}
+            <span class="font-semibold">Pseudo :</span>
+            {{ user.displayName }}
         </p>
 
         <p class="mt-6 text-sm text-gray-500">
-            URL publique : <code>/u/{{ user.email }}</code>
+            URL publique : <code>/u/{{ user.pseudo ?: user.email }}</code>
         </p>
+
+        <hr class="my-6">
+
+        {# Statistiques d'utilisation #}
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold mb-3">Statistiques d'utilisation</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Wikis créés</span>
+                    <span class="text-xl font-bold text-blue-600">{{ stats.wikis_created }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Wikis enfants</span>
+                    <span class="text-xl font-bold text-blue-600">{{ stats.child_wikis_created }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Articles créés</span>
+                    <span class="text-xl font-bold text-green-600">{{ stats.articles_created }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Messages postés</span>
+                    <span class="text-xl font-bold text-purple-600">{{ stats.messages_count }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Actions déclenchées</span>
+                    <span class="text-xl font-bold text-orange-600">{{ stats.notifications_created }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500 text-xs">Réservations</span>
+                    <span class="text-xl font-bold text-red-600">{{ stats.reservations_count }}</span>
+                </div>
+            </div>
+        </div>
 
         <hr class="my-6">
 

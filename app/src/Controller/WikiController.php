@@ -121,8 +121,8 @@ class WikiController extends AbstractController
         $locationSearchQuery = '';
         $customLocationForm = null;
 
-        if ($isOwner) {
-            // Formulaire pour ajouter un article enfant
+        // Formulaire pour ajouter un article - accessible à tous les utilisateurs connectés
+        if ($currentUser) {
             $article = new Article();
             $article->setWikiPage($wikiPage);
             $articleForm = $this->createForm(ArticleType::class, $article);
@@ -152,6 +152,9 @@ class WikiController extends AbstractController
 
                 return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
             }
+        }
+
+        if ($isOwner) {
 
             // Formulaire pour ajouter un wiki enfant
             $childWiki = new WikiPage();
@@ -309,29 +312,116 @@ class WikiController extends AbstractController
         $forumItems = []; // Mélange de notifications et messages
 
         if ($forum) {
-            $messages = $em->getRepository(Message::class)->findBy(
-                ['forum' => $forum],
-                ['createdAt' => 'ASC']
-            );
+            // Charger les messages - on utilise une requête DQL qui vérifie l'existence de l'auteur
+            $messages = $em->createQuery(
+                'SELECT m FROM App\Entity\Message m 
+                 LEFT JOIN m.author a 
+                 WHERE m.forum = :forum 
+                 AND (a.id IS NOT NULL OR m.author IS NULL)
+                 ORDER BY m.createdAt ASC'
+            )
+            ->setParameter('forum', $forum)
+            ->getResult();
             
-            $notifications = $em->getRepository(\App\Entity\Notification::class)->findBy(
-                ['forum' => $forum],
-                ['createdAt' => 'ASC']
-            );
+            // Vérifier que les auteurs existent encore
+            $validMessages = [];
+            $userRepo = $em->getRepository(\App\Entity\Utilisateurs::class);
+            foreach ($messages as $msg) {
+                $author = $msg->getAuthor();
+                if ($author === null) {
+                    $validMessages[] = $msg;
+                } else {
+                    // Vérifier si l'auteur existe encore
+                    $authorExists = $userRepo->find($author->getId());
+                    if ($authorExists) {
+                        $validMessages[] = $msg;
+                    } else {
+                        // L'auteur n'existe plus, on met l'auteur à null
+                        $msg->setAuthor(null);
+                        $validMessages[] = $msg;
+                    }
+                }
+            }
+            $messages = $validMessages;
+            
+            // Charger les notifications - on utilise une requête DQL qui vérifie l'existence de l'auteur
+            $allNotifications = $em->createQuery(
+                'SELECT n FROM App\Entity\Notification n 
+                 LEFT JOIN n.author a 
+                 WHERE n.forum = :forum 
+                 ORDER BY n.createdAt ASC'
+            )
+            ->setParameter('forum', $forum)
+            ->getResult();
+            
+            // Vérifier que les auteurs existent encore
+            $notifications = [];
+            $userRepo = $em->getRepository(\App\Entity\Utilisateurs::class);
+            foreach ($allNotifications as $notif) {
+                try {
+                    $author = $notif->getAuthor();
+                    if ($author === null) {
+                        $notifications[] = $notif;
+                    } else {
+                        // Vérifier si l'auteur existe encore en utilisant l'ID directement
+                        $authorId = $author->getId();
+                        $authorExists = $userRepo->find($authorId);
+                        if ($authorExists) {
+                            $notifications[] = $notif;
+                        } else {
+                            // L'auteur n'existe plus, on met l'auteur à null
+                            $notif->setAuthor(null);
+                            $notifications[] = $notif;
+                        }
+                    }
+                } catch (\Doctrine\ORM\EntityNotFoundException $e) {
+                    // L'auteur n'existe plus, on met l'auteur à null
+                    $notif->setAuthor(null);
+                    $notifications[] = $notif;
+                } catch (\Exception $e) {
+                    // En cas d'autre erreur, on met l'auteur à null pour éviter les erreurs
+                    $notif->setAuthor(null);
+                    $notifications[] = $notif;
+                }
+            }
 
             // Fusionner les notifications et messages avec un type pour les distinguer
             foreach ($messages as $message) {
+                // Préparer les données de l'auteur de manière sécurisée
+                $authorName = 'Utilisateur disparu';
+                try {
+                    $author = $message->getAuthor();
+                    if ($author) {
+                        $authorName = $author->getDisplayName();
+                    }
+                } catch (\Exception $e) {
+                    // Auteur inaccessible, on garde "Utilisateur disparu"
+                }
+                
                 $forumItems[] = [
                     'type' => 'message',
                     'item' => $message,
+                    'authorName' => $authorName,
                     'createdAt' => $message->getCreatedAt(),
                 ];
             }
 
             foreach ($notifications as $notification) {
+                // Préparer les données de l'auteur de manière sécurisée
+                $authorName = 'Utilisateur disparu';
+                try {
+                    $author = $notification->getAuthor();
+                    if ($author) {
+                        $authorName = $author->getDisplayName();
+                    }
+                } catch (\Exception $e) {
+                    // Auteur inaccessible, on garde "Utilisateur disparu"
+                }
+                
                 $forumItems[] = [
                     'type' => 'notification',
                     'item' => $notification,
+                    'authorName' => $authorName,
                     'createdAt' => $notification->getCreatedAt(),
                 ];
             }

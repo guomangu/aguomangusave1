@@ -39,11 +39,16 @@
 
                     {% if app.user %}
                         <span class="text-xs text-gray-500">
-                            Connecté : {{ app.user.email }}
+                            Connecté : {{ app.user.displayName }}
                         </span>
-                        <a href="{{ path('app_user_public', { email: app.user.email }) }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        <a href="{{ path('app_user_profile') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
                             <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                                Mon espace
+                                Mon profil
+                            </button>
+                        </a>
+                        <a href="{{ path('app_user_public', { identifier: app.user.pseudo ?: app.user.email }) }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                                Profil public
                             </button>
                         </a>
                         <a href="{{ path('app_logout') }}" class="text-sm font-medium text-gray-700 hover:text-red-600">

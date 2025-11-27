@@ -3,7 +3,6 @@
 namespace App\Controller\Admin;
 
 use App\Entity\AgendaSlotPattern;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
@@ -12,7 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
 
-class AgendaSlotPatternCrudController extends AbstractCrudController
+class AgendaSlotPatternCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string
     {

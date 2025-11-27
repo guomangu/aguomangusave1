@@ -12,7 +12,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UtilisateursRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_PSEUDO', fields: ['pseudo'])]
 #[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
+#[UniqueEntity(fields: ['pseudo'], message: 'Ce pseudo est déjà utilisé')]
 class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -22,6 +24,9 @@ class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 180)]
     private ?string $email = null;
+
+    #[ORM\Column(length: 100, unique: true)]
+    private ?string $pseudo = null;
 
     /**
      * @var list<string> The user roles
@@ -65,6 +70,26 @@ class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
         $this->email = $email;
 
         return $this;
+    }
+
+    public function getPseudo(): ?string
+    {
+        return $this->pseudo;
+    }
+
+    public function setPseudo(?string $pseudo): static
+    {
+        $this->pseudo = $pseudo;
+
+        return $this;
+    }
+
+    /**
+     * Retourne le pseudo ou l'email si le pseudo n'est pas défini
+     */
+    public function getDisplayName(): string
+    {
+        return $this->pseudo ?: $this->email;
     }
 
     /**
@@ -199,5 +224,89 @@ class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         return $this;
+    }
+
+    /**
+     * Statistiques d'utilisation du site
+     * Ces méthodes calculent les stats à partir des relations existantes
+     */
+
+    /**
+     * Nombre de wikis créés (en tant que propriétaire)
+     */
+    public function getStatsWikisCreated(): int
+    {
+        return $this->wikiPages->count();
+    }
+
+    /**
+     * Nombre d'articles créés (via les wikis dont l'utilisateur est propriétaire)
+     */
+    public function getStatsArticlesCreated(): int
+    {
+        $count = 0;
+        foreach ($this->wikiPages as $wiki) {
+            $count += $wiki->getArticles()->count();
+        }
+        return $count;
+    }
+
+    /**
+     * Nombre de messages postés dans les forums
+     * Note: nécessite une injection du repository Message dans le contexte d'utilisation
+     */
+    public function getStatsMessagesCount($messageRepository = null): int
+    {
+        if ($messageRepository) {
+            return $messageRepository->count(['author' => $this]);
+        }
+        return 0; // Retourne 0 si le repository n'est pas fourni
+    }
+
+    /**
+     * Nombre de notifications créées (actions déclenchées)
+     * Note: nécessite une injection du repository Notification dans le contexte d'utilisation
+     */
+    public function getStatsNotificationsCreated($notificationRepository = null): int
+    {
+        if ($notificationRepository) {
+            return $notificationRepository->count(['author' => $this]);
+        }
+        return 0; // Retourne 0 si le repository n'est pas fourni
+    }
+
+    /**
+     * Nombre de réservations de créneaux
+     */
+    public function getStatsReservationsCount(): int
+    {
+        return $this->reservations->count();
+    }
+
+    /**
+     * Nombre total de wikis enfants créés
+     */
+    public function getStatsChildWikisCreated(): int
+    {
+        $count = 0;
+        foreach ($this->wikiPages as $wiki) {
+            $count += $wiki->getChildren()->count();
+        }
+        return $count;
+    }
+
+    /**
+     * Retourne un tableau avec toutes les statistiques
+     */
+    public function getAllStats($messageRepository = null, $notificationRepository = null): array
+    {
+        return [
+            'wikis_created' => $this->getStatsWikisCreated(),
+            'child_wikis_created' => $this->getStatsChildWikisCreated(),
+            'articles_created' => $this->getStatsArticlesCreated(),
+            'messages_count' => $this->getStatsMessagesCount($messageRepository),
+            'notifications_created' => $this->getStatsNotificationsCreated($notificationRepository),
+            'reservations_count' => $this->getStatsReservationsCount(),
+        ];
     }
 }

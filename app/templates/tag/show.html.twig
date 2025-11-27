@@ -34,7 +34,7 @@
         <div class="mb-6">
             <h2 class="text-lg font-semibold mb-2">Wikis liés à ce tag</h2>
             {% if wikis is empty %}
-                <p class="text-gray-500 text-sm">Aucun wiki n’est lié à ce tag pour l’instant.</p>
+                <p class="text-gray-500 text-sm">Aucun wiki n'est lié à ce tag pour l'instant.</p>
             {% else %}
                 <ul class="space-y-2">
                     {% for page in wikis %}
@@ -44,6 +44,48 @@
                                    class="font-semibold text-blue-600 hover:underline">
                                     {{ page.title }}
                                 </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="mb-6 border-t pt-4">
+            <h2 class="text-lg font-semibold mb-2">Articles liés à ce tag</h2>
+            
+            {% if app.user and articleForm %}
+                <div class="mb-4 p-3 bg-gray-50 rounded-md">
+                    <h3 class="text-sm font-semibold mb-2">Créer un article</h3>
+                    {{ form_start(articleForm) }}
+                        <div class="space-y-3">
+                            {{ form_row(articleForm.title) }}
+                            {{ form_row(articleForm.content) }}
+                            {{ form_row(articleForm.imageFile) }}
+                        </div>
+                        <button class="mt-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
+                            Créer l'article
+                        </button>
+                    {{ form_end(articleForm) }}
+                </div>
+            {% endif %}
+
+            {% if articles is empty %}
+                <p class="text-gray-500 text-sm">Aucun article n'est lié à ce tag pour l'instant.</p>
+            {% else %}
+                <ul class="space-y-3">
+                    {% for article in articles %}
+                        <li class="border border-gray-200 rounded-md p-3 bg-white">
+                            <div class="flex items-start gap-3">
+                                {% if article.image %}
+                                    <img src="{{ article.image }}" alt="{{ article.title }}" class="w-24 h-24 object-cover rounded">
+                                {% endif %}
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 mb-1">{{ article.title }}</h3>
+                                    {% if article.content %}
+                                        <p class="text-sm text-gray-600 line-clamp-3">{{ article.content }}</p>
+                                    {% endif %}
+                                </div>
                             </div>
                         </li>
                     {% endfor %}
@@ -74,30 +116,9 @@
                 {% endif %}
             {% else %}
                 <div class="space-y-4">
-                    {% if messages is empty %}
-                        <p class="text-gray-500 text-sm">Aucun message pour l’instant. Soyez le premier à écrire !</p>
-                    {% else %}
-                        <ul class="space-y-3">
-                            {% for m in messages %}
-                                <li class="bg-white border border-gray-200 rounded-md px-3 py-2 text-sm">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <span class="font-semibold text-gray-800">
-                                            {{ m.author.email }}
-                                        </span>
-                                        <span class="text-xs text-gray-400">
-                                            {{ m.createdAt|date('d/m/Y H:i') }}
-                                        </span>
-                                    </div>
-                                    <p class="text-gray-700 whitespace-pre-line">
-                                        {{ m.content }}
-                                    </p>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-
-                    {% if app.user %}
-                        <div class="mt-4">
+                    {# Formulaire de message en haut #}
+                    {% if app.user and messageForm %}
+                        <div class="mb-6">
                             <h3 class="text-sm font-semibold mb-2">Écrire un message</h3>
                             {{ form_start(messageForm) }}
                                 {{ form_row(messageForm.content) }}
@@ -106,13 +127,75 @@
                                 </button>
                             {{ form_end(messageForm) }}
                         </div>
-                    {% else %}
-                        <p class="mt-3 text-xs text-gray-500">
+                    {% elseif not app.user %}
+                        <p class="mb-4 text-xs text-gray-500">
                             Connecte-toi pour participer à la discussion.
                             <a href="{{ path('app_login') }}" class="text-blue-600 hover:underline">
                                 Se connecter
                             </a>
                         </p>
+                    {% endif %}
+
+                    {# Messages et notifications mélangés, triés par date (plus récent en haut) #}
+                    {% if forumItems is empty %}
+                        <p class="text-gray-500 text-sm">Aucun message ou notification pour l'instant. Soyez le premier à écrire !</p>
+                    {% else %}
+                        <ul class="space-y-3">
+                            {% for item in forumItems %}
+                                {% if item.type == 'notification' %}
+                                    {# Notification #}
+                                    {% set notif = item.item %}
+                                    <li class="bg-blue-50 border-l-4 border-blue-400 rounded px-3 py-2 text-sm">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <div class="flex-1">
+                                                <span class="text-blue-800 font-medium">
+                                                    {% if notif.type == 'tag_created' %}
+                                                        📍 Tag créé
+                                                    {% elseif notif.type == 'agenda_routine_created' %}
+                                                        📅 Routine créée
+                                                    {% elseif notif.type == 'agenda_reserved' %}
+                                                        ✅ Créneau réservé
+                                                    {% elseif notif.type == 'article_created' %}
+                                                        📄 Article créé
+                                                    {% elseif notif.type == 'wiki_child_created' %}
+                                                        🌿 Wiki enfant créé
+                                                    {% else %}
+                                                        ℹ️ Notification
+                                                    {% endif %}
+                                                </span>
+                                                {% if item.authorName %}
+                                                    <span class="text-blue-600 text-xs ml-2">
+                                                        par {{ item.authorName }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <span class="text-xs text-blue-500">
+                                                {{ notif.createdAt|date('d/m/Y H:i') }}
+                                            </span>
+                                        </div>
+                                        <p class="text-blue-900 mt-1">
+                                            {{ notif.content }}
+                                        </p>
+                                    </li>
+                                {% else %}
+                                    {# Message #}
+                                    {% set m = item.item %}
+                                    <li class="bg-white border border-gray-200 rounded-md px-3 py-2 text-sm">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="font-semibold text-gray-800">
+                                                {{ item.authorName }}
+                                            </span>
+                                            <span class="text-xs text-gray-400">
+                                                {{ m.createdAt|date('d/m/Y H:i') }}
+                                            </span>
+                                        </div>
+                                        <p class="text-gray-700 whitespace-pre-line">
+                                            {{ m.content }}
+                                        </p>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
                     {% endif %}
                 </div>
             {% endif %}

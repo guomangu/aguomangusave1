@@ -14,12 +14,20 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
     public function index(): Response
     {
+        // Sécurisation : seul guillaume@gmail.com peut accéder à l'admin
+        $user = $this->getUser();
+        if (!$user || $user->getUserIdentifier() !== 'guillaume@gmail.com') {
+            $this->addFlash('error', 'Accès refusé. Seul l\'administrateur peut accéder à cette page.');
+            return $this->redirectToRoute('app_home');
+        }
 
         // Option 1. You can make your dashboard redirect to some common page of your backend
         //

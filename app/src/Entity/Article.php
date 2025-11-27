@@ -23,8 +23,12 @@ class Article
     private ?string $image = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?WikiPage $wikiPage = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?LocationTag $locationTag = null;
 
     public function getId(): ?int
     {
@@ -75,6 +79,18 @@ class Article
     public function setWikiPage(?WikiPage $wikiPage): static
     {
         $this->wikiPage = $wikiPage;
+
+        return $this;
+    }
+
+    public function getLocationTag(): ?LocationTag
+    {
+        return $this->locationTag;
+    }
+
+    public function setLocationTag(?LocationTag $locationTag): static
+    {
+        $this->locationTag = $locationTag;
 
         return $this;
     }

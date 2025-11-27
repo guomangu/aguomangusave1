@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil{% endblock %}
+
+{% block body %}
+
+    <div class="max-w-2xl mx-auto mt-10 bg-white rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold mb-4">Mon profil</h1>
+
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h2 class="text-lg font-semibold mb-3 text-blue-800">Informations personnelles</h2>
+            <p class="text-sm text-blue-700 mb-2">
+                <span class="font-semibold">Email :</span> {{ user.email }}
+            </p>
+            <p class="text-sm text-blue-700">
+                <span class="font-semibold">Pseudo :</span> {{ user.pseudo ?: 'Non défini' }}
+            </p>
+        </div>
+
+        <div class="border-t pt-6">
+            <h2 class="text-lg font-semibold mb-4">Modifier mes informations</h2>
+
+            {{ form_start(profileForm) }}
+                <div class="space-y-4">
+                    {{ form_row(profileForm.email, {
+                        'label': 'Email',
+                        'attr': {'class': 'w-full px-3 py-2 border border-gray-300 rounded-md'}
+                    }) }}
+                    {{ form_row(profileForm.pseudo, {
+                        'label': 'Pseudo',
+                        'attr': {'class': 'w-full px-3 py-2 border border-gray-300 rounded-md'}
+                    }) }}
+                    <div class="p-4 bg-gray-50 rounded-md">
+                        <p class="text-sm text-gray-600 mb-3">
+                            <strong>Changer le mot de passe :</strong><br>
+                            Laissez vide si vous ne souhaitez pas le modifier.
+                        </p>
+                        {{ form_row(profileForm.plainPassword.first, {
+                            'label': 'Nouveau mot de passe',
+                            'attr': {'class': 'w-full px-3 py-2 border border-gray-300 rounded-md'}
+                        }) }}
+                        {{ form_row(profileForm.plainPassword.second, {
+                            'label': 'Confirmer le mot de passe',
+                            'attr': {'class': 'w-full px-3 py-2 border border-gray-300 rounded-md'}
+                        }) }}
+                    </div>
+                </div>
+                <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Enregistrer les modifications
+                </button>
+            {{ form_end(profileForm) }}
+        </div>
+
+        <div class="mt-6 border-t pt-6">
+            <a href="{{ path('app_user_public', {identifier: user.pseudo ?: user.email}) }}" 
+               class="text-blue-600 hover:underline text-sm">
+                ← Retour à mon profil public
+            </a>
+        </div>
+
+        <div class="mt-8 border-t pt-6">
+            <h2 class="text-lg font-semibold mb-4 text-red-600">Zone de danger</h2>
+            <div class="p-4 bg-red-50 rounded-md border border-red-200">
+                <p class="text-sm text-red-700 mb-4">
+                    <strong>Supprimer mon compte</strong><br>
+                    Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+                </p>
+                
+                {{ form_start(deleteForm, {'attr': {'onsubmit': 'return confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.");'}}) }}
+                    <div class="space-y-3">
+                        {{ form_row(deleteForm.password, {
+                            'label': 'Confirmez votre mot de passe',
+                            'attr': {'class': 'w-full px-3 py-2 border border-red-300 rounded-md'}
+                        }) }}
+                        <button type="submit" 
+                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                            Supprimer mon compte
+                        </button>
+                    </div>
+                {{ form_end(deleteForm) }}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+

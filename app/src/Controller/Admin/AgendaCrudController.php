@@ -3,13 +3,12 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Agenda;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class AgendaCrudController extends AbstractCrudController
+class AgendaCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string
     {

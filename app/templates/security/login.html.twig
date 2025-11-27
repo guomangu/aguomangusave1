@@ -18,7 +18,7 @@
 
             {% if app.user %}
                 <div class="mb-4 text-sm text-gray-700">
-                    Connecté en tant que <span class="font-semibold">{{ app.user.userIdentifier }}</span>.
+                    Connecté en tant que <span class="font-semibold">{{ app.user.displayName }}</span>.
                     <a href="{{ path('app_logout') }}" class="text-blue-600 hover:underline">
                         Se déconnecter
                     </a>

@@ -70,8 +70,8 @@
                 {% endif %}
             </div>
 
-            {% if isOwner and articleForm is not null %}
-                {# --- FORMULAIRE DE CREATION D'ARTICLE (réservé au propriétaire) --- #}
+            {% if app.user and articleForm is not null %}
+                {# --- FORMULAIRE DE CREATION D'ARTICLE (accessible à tous les utilisateurs connectés) --- #}
                 <div class="mt-8 border-t pt-6">
                     <h2 class="text-xl font-semibold mb-4">Ajouter un article</h2>
                     {{ form_start(articleForm) }}
@@ -81,7 +81,7 @@
                             {{ form_row(articleForm.imageFile) }}
                         </div>
                         <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Enregistrer l’article
+                            Enregistrer l'article
                         </button>
                     {{ form_end(articleForm) }}
                 </div>
@@ -167,9 +167,9 @@
                                                             ℹ️ Notification
                                                         {% endif %}
                                                     </span>
-                                                    {% if notif.author %}
+                                                    {% if item.authorName %}
                                                         <span class="text-blue-600 text-xs ml-2">
-                                                            par {{ notif.author.email }}
+                                                            par {{ item.authorName }}
                                                         </span>
                                                     {% endif %}
                                                 </div>
@@ -187,7 +187,7 @@
                                         <li class="bg-white border border-gray-200 rounded-md px-3 py-2 text-sm">
                                             <div class="flex justify-between items-center mb-1">
                                                 <span class="font-semibold text-gray-800">
-                                                    {{ m.author.email }}
+                                                    {{ item.authorName }}
                                                 </span>
                                                 <span class="text-xs text-gray-400">
                                                     {{ m.createdAt|date('d/m/Y H:i') }}
@@ -455,8 +455,8 @@
                 },
                 firstDay: 1,
                 allDaySlot: false,
-                slotMinTime: '06:00:00',
-                slotMaxTime: '22:00:00',
+                slotMinTime: '00:00:00',
+                slotMaxTime: '24:00:00',
                 events: function (info, successCallback, failureCallback) {
                     const params = new URLSearchParams({
                         start: info.startStr,

@@ -51,8 +51,9 @@ class AuthentificatorAuthenticator extends AbstractLoginFormAuthenticator
         // Par défaut, on redirige l'utilisateur vers sa page publique
         /** @var \App\Entity\Utilisateurs $user */
         $user = $token->getUser();
+        $identifier = $user->getPseudo() ?: $user->getEmail();
         $url = $this->urlGenerator->generate('app_user_public', [
-            'email' => $user->getEmail(),
+            'identifier' => $identifier,
         ]);
 
         return new RedirectResponse($url);
