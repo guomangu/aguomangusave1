@@ -7,6 +7,9 @@ use App\Entity\WikiPage;
 use App\Entity\Article;
 use App\Form\ArticleType;
 use App\Entity\AgendaSlotPattern;
+use App\Entity\Forum;
+use App\Entity\Message;
+use App\Form\MessageType;
 use App\Form\AgendaRoutineType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -196,12 +199,47 @@ class WikiController extends AbstractController
             }
         }
 
+        // Gestion du forum et des messages
+        $forum = $wikiPage->getForum();
+        if (!$forum) {
+            $forum = null;
+        }
+
+        $messageForm = null;
+        $messages = [];
+
+        if ($forum) {
+            $messages = $em->getRepository(Message::class)->findBy(
+                ['forum' => $forum],
+                ['createdAt' => 'ASC']
+            );
+
+            if ($currentUser) {
+                $message = new Message();
+                $message->setForum($forum);
+                $message->setAuthor($currentUser);
+                $messageForm = $this->createForm(MessageType::class, $message);
+                $messageForm->handleRequest($request);
+
+                if ($messageForm->isSubmitted() && $messageForm->isValid()) {
+                    $message->setCreatedAt(new \DateTimeImmutable());
+                    $em->persist($message);
+                    $em->flush();
+
+                    return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+                }
+            }
+        }
+
         return $this->render('wiki/index.html.twig', [
             'page' => $wikiPage,
             'articleForm' => $articleForm,
             'childWikiForm' => $childForm,
             'agendaForm' => $agendaForm,
             'isOwner' => $isOwner,
+            'forum' => $forum,
+            'messages' => $messages,
+            'messageForm' => $messageForm,
         ]);
     }
     
@@ -250,6 +288,34 @@ class WikiController extends AbstractController
             $em->remove($pattern);
             $em->flush();
             $this->addFlash('success', 'Routine supprimée.');
+        }
+
+        return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+    }
+
+    #[Route('/wiki/{id}/forum/create', name: 'app_wiki_forum_create', methods: ['POST'])]
+    public function createForum(WikiPage $wikiPage, Request $request, EntityManagerInterface $em): Response
+    {
+        $currentUser = $this->getUser();
+        if (!$currentUser || !$wikiPage->getOwner() || $wikiPage->getOwner() !== $currentUser) {
+            $this->addFlash('error', 'Vous ne pouvez pas créer un forum pour ce wiki.');
+            return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+        }
+
+        if ($wikiPage->getForum()) {
+            $this->addFlash('info', 'Le forum existe déjà pour ce wiki.');
+            return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+        }
+
+        if ($this->isCsrfTokenValid('create_forum'.$wikiPage->getId(), $request->request->get('_token'))) {
+            $forum = new Forum();
+            $forum->setWikiPage($wikiPage);
+            $wikiPage->setForum($forum);
+
+            $em->persist($forum);
+            $em->flush();
+
+            $this->addFlash('success', 'Forum créé pour ce wiki.');
         }
 
         return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);

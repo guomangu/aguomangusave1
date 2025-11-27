@@ -6,6 +6,7 @@ use App\Repository\WikiPageRepository;
 use App\Entity\Utilisateurs;
 use App\Entity\Agenda;
 use App\Entity\AgendaSlotPattern;
+use App\Entity\Forum;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -44,6 +45,9 @@ class WikiPage
     #[ORM\OneToMany(mappedBy: 'wikiPage', targetEntity: AgendaSlotPattern::class, orphanRemoval: true)]
     private Collection $agendaSlotPatterns;
 
+    #[ORM\OneToOne(mappedBy: 'wikiPage', targetEntity: Forum::class, cascade: ['persist', 'remove'])]
+    private ?Forum $forum = null;
+
     public function __construct()
     {
         $this->children = new ArrayCollection();
@@ -65,6 +69,23 @@ class WikiPage
     public function setTitle(string $title): static
     {
         $this->title = $title;
+
+        return $this;
+    }
+
+    public function getForum(): ?Forum
+    {
+        return $this->forum;
+    }
+
+    public function setForum(?Forum $forum): static
+    {
+        // set the owning side of the relation if necessary
+        if ($forum && $forum->getWikiPage() !== $this) {
+            $forum->setWikiPage($this);
+        }
+
+        $this->forum = $forum;
 
         return $this;
     }
