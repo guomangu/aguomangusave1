@@ -11,6 +11,7 @@ use App\Entity\Forum;
 use App\Entity\Message;
 use App\Form\MessageType;
 use App\Form\AgendaRoutineType;
+use App\Service\LocationTagService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -96,7 +97,12 @@ class WikiController extends AbstractController
     }
 
     #[Route('/wiki/{id}', name: 'app_wiki_show', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function show(WikiPage $wikiPage, Request $request, EntityManagerInterface $em): Response
+    public function show(
+        WikiPage $wikiPage,
+        Request $request,
+        EntityManagerInterface $em,
+        LocationTagService $locationTagService
+    ): Response
     {
         // Magie : Symfony a vu "{id}" dans l'URL et "WikiPage" dans les arguments.
         // Il fait tout seul le "SELECT * FROM wiki_page WHERE id = ..."
@@ -109,6 +115,9 @@ class WikiController extends AbstractController
         $articleForm = null;
         $childForm = null;
         $agendaForm = null;
+        $locationSearchResults = [];
+        $locationSearchQuery = '';
+        $customLocationForm = null;
 
         if ($isOwner) {
             // Formulaire pour ajouter un article enfant
@@ -197,6 +206,45 @@ class WikiController extends AbstractController
 
                 return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
             }
+
+            // Formulaire de recherche de localisation (CSV)
+            $locationSearchQuery = (string) $request->query->get('loc_q', '');
+            if ($locationSearchQuery !== '') {
+                $locationSearchResults = $locationTagService->searchPlaces($locationSearchQuery, 10);
+            }
+
+            // Formulaire de tag personnalisé libre (titre + description), toujours lié au wiki
+            $customLocationFormBuilder = $this->createFormBuilder(null, [
+                'csrf_protection' => true,
+            ])
+                ->add('title', \Symfony\Component\Form\Extension\Core\Type\TextType::class, [
+                    'label' => 'Titre du tag (ex : Étage)',
+                ])
+                ->add('description', \Symfony\Component\Form\Extension\Core\Type\TextareaType::class, [
+                    'label' => 'Description (ex : 5e étage)',
+                    'required' => false,
+                    'attr' => [
+                        'rows' => 2,
+                    ],
+                ]);
+
+            $customLocationForm = $customLocationFormBuilder->getForm();
+            $customLocationForm->handleRequest($request);
+
+            if ($customLocationForm->isSubmitted() && $customLocationForm->isValid()) {
+                $data = $customLocationForm->getData();
+                $tag = new \App\Entity\LocationTag();
+                $tag->setName($data['title'])
+                    ->setType('custom')
+                    ->setDescription($data['description'] ?? null)
+                    ->setParent(null);
+
+                $em->persist($tag);
+                $wikiPage->addLocationTag($tag);
+                $em->flush();
+
+                return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+            }
         }
 
         // Gestion du forum et des messages
@@ -240,6 +288,9 @@ class WikiController extends AbstractController
             'forum' => $forum,
             'messages' => $messages,
             'messageForm' => $messageForm,
+            'locationSearchQuery' => $locationSearchQuery,
+            'locationSearchResults' => $locationSearchResults,
+            'customLocationForm' => $customLocationForm,
         ]);
     }
     

@@ -7,6 +7,7 @@ use App\Entity\Utilisateurs;
 use App\Entity\Agenda;
 use App\Entity\AgendaSlotPattern;
 use App\Entity\Forum;
+use App\Entity\LocationTag;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -48,12 +49,16 @@ class WikiPage
     #[ORM\OneToOne(mappedBy: 'wikiPage', targetEntity: Forum::class, cascade: ['persist', 'remove'])]
     private ?Forum $forum = null;
 
+    #[ORM\ManyToMany(targetEntity: LocationTag::class, inversedBy: 'wikiPages')]
+    private Collection $locationTags;
+
     public function __construct()
     {
         $this->children = new ArrayCollection();
         $this->articles = new ArrayCollection();
         $this->agendas = new ArrayCollection();
         $this->agendaSlotPatterns = new ArrayCollection();
+        $this->locationTags = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -69,6 +74,30 @@ class WikiPage
     public function setTitle(string $title): static
     {
         $this->title = $title;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, LocationTag>
+     */
+    public function getLocationTags(): Collection
+    {
+        return $this->locationTags;
+    }
+
+    public function addLocationTag(LocationTag $locationTag): static
+    {
+        if (!$this->locationTags->contains($locationTag)) {
+            $this->locationTags->add($locationTag);
+        }
+
+        return $this;
+    }
+
+    public function removeLocationTag(LocationTag $locationTag): static
+    {
+        $this->locationTags->removeElement($locationTag);
 
         return $this;
     }
