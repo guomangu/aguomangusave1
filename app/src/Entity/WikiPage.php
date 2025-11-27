@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\WikiPageRepository;
 use App\Entity\Utilisateurs;
+use App\Entity\Agenda;
+use App\Entity\AgendaSlotPattern;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -36,10 +38,18 @@ class WikiPage
     #[ORM\OneToMany(mappedBy: 'wikiPage', targetEntity: Article::class, orphanRemoval: true)]
     private Collection $articles;
 
+    #[ORM\OneToMany(mappedBy: 'wikiPage', targetEntity: Agenda::class, orphanRemoval: true)]
+    private Collection $agendas;
+
+    #[ORM\OneToMany(mappedBy: 'wikiPage', targetEntity: AgendaSlotPattern::class, orphanRemoval: true)]
+    private Collection $agendaSlotPatterns;
+
     public function __construct()
     {
         $this->children = new ArrayCollection();
         $this->articles = new ArrayCollection();
+        $this->agendas = new ArrayCollection();
+        $this->agendaSlotPatterns = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -148,6 +158,69 @@ class WikiPage
             // set the owning side to null (unless already changed)
             if ($article->getWikiPage() === $this) {
                 $article->setWikiPage(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Agenda>
+     */
+    public function getAgendas(): Collection
+    {
+        return $this->agendas;
+    }
+
+    public function addAgenda(Agenda $agenda): static
+    {
+        if (!$this->agendas->contains($agenda)) {
+            $this->agendas->add($agenda);
+            $agenda->setWikiPage($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAgenda(Agenda $agenda): static
+    {
+        if ($this->agendas->removeElement($agenda)) {
+            if ($agenda->getWikiPage() === $this) {
+                $agenda->setWikiPage(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return (string) $this->title;
+    }
+
+    /**
+     * @return Collection<int, AgendaSlotPattern>
+     */
+    public function getAgendaSlotPatterns(): Collection
+    {
+        return $this->agendaSlotPatterns;
+    }
+
+    public function addAgendaSlotPattern(AgendaSlotPattern $pattern): static
+    {
+        if (!$this->agendaSlotPatterns->contains($pattern)) {
+            $this->agendaSlotPatterns->add($pattern);
+            $pattern->setWikiPage($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAgendaSlotPattern(AgendaSlotPattern $pattern): static
+    {
+        if ($this->agendaSlotPatterns->removeElement($pattern)) {
+            if ($pattern->getWikiPage() === $this) {
+                $pattern->setWikiPage(null);
             }
         }
 

@@ -2,6 +2,11 @@
 
 {% block title %}{{ page.title }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+{% endblock %}
+
 {% block body %}
     
     {# Appel du composant. On passe le titre en attribut. #}
@@ -62,6 +67,15 @@
                 </div>
             {% endif %}
 
+            {# --- AGENDA / EMPLOI DU TEMPS --- #}
+            <div class="mt-10 border-t pt-6">
+                <h2 class="text-xl font-semibold mb-4">Agenda / créneaux disponibles</h2>
+                <div id="wiki-calendar" class="mt-4 bg-white rounded shadow p-4"></div>
+                <p class="mt-2 text-xs text-gray-500">
+                    Clique sur un créneau vert pour réserver ce créneau.
+                </p>
+            </div>
+
             {# --- LISTE DES WIKIS ENFANTS --- #}
             <div class="mt-10 border-t pt-6">
                 <h2 class="text-xl font-semibold mb-4">Wikis enfants</h2>
@@ -99,6 +113,27 @@
                 </div>
             {% endif %}
 
+            {% if isOwner and agendaForm is not null %}
+                {# --- FORMULAIRE DE CREATION DE ROUTINE DE CRENEAU (AgendaSlotPattern) --- #}
+                <div class="mt-8 border-t pt-6">
+                    <h2 class="text-xl font-semibold mb-4">Ajouter une routine de créneau</h2>
+                    {{ form_start(agendaForm) }}
+                        <div class="space-y-4">
+                            {{ form_row(agendaForm.title) }}
+                            {{ form_row(agendaForm.dayOfWeek) }}
+                            {{ form_row(agendaForm.startTime) }}
+                            {{ form_row(agendaForm.endTime) }}
+                            {{ form_row(agendaForm.validFrom) }}
+                            {{ form_row(agendaForm.validTo) }}
+                            {{ form_row(agendaForm.capacity) }}
+                        </div>
+                        <button class="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                            Enregistrer la routine
+                        </button>
+                    {{ form_end(agendaForm) }}
+                </div>
+            {% endif %}
+
             {% if isOwner %}
                 {# --- BOUTON DELETE (réservé au propriétaire) --- #}
                 <div class="flex justify-end mb-4 mt-6">
@@ -114,4 +149,58 @@
 
     </twig:WikiCard>
 
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('wiki-calendar');
+            if (!calendarEl) return;
+
+            const wikiId = {{ page.id }};
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'fr',
+                timeZone: 'local',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                firstDay: 1,
+                allDaySlot: false,
+                slotMinTime: '06:00:00',
+                slotMaxTime: '22:00:00',
+                events: function (info, successCallback, failureCallback) {
+                    const params = new URLSearchParams({
+                        start: info.startStr,
+                        end: info.endStr,
+                        filters: JSON.stringify({ wikiId: wikiId })
+                    });
+
+                    fetch('/fc-load-events?' + params.toString())
+                        .then(response => {
+                            if (response.status === 204) {
+                                return '[]';
+                            }
+                            if (!response.ok) {
+                                throw new Error('Erreur lors du chargement des événements');
+                            }
+                            return response.text();
+                        })
+                        .then(text => text ? JSON.parse(text) : [])
+                        .then(events => successCallback(events))
+                        .catch(error => {
+                            console.error(error);
+                            failureCallback(error);
+                        });
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
 {% endblock %}

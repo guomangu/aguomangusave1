@@ -6,6 +6,8 @@ use App\Form\WikiPageType;
 use App\Entity\WikiPage;
 use App\Entity\Article;
 use App\Form\ArticleType;
+use App\Entity\AgendaSlotPattern;
+use App\Form\AgendaSlotPatternType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -100,11 +102,13 @@ class WikiController extends AbstractController
         $currentUser = $this->getUser();
         $isOwner = $currentUser && $wikiPage->getOwner() && $wikiPage->getOwner() === $currentUser;
 
-        // Formulaire pour ajouter un article enfant (réservé au propriétaire)
+        // Formulaires réservés au propriétaire
         $articleForm = null;
         $childForm = null;
+        $agendaForm = null;
 
         if ($isOwner) {
+            // Formulaire pour ajouter un article enfant
             $article = new Article();
             $article->setWikiPage($wikiPage);
             $articleForm = $this->createForm(ArticleType::class, $article);
@@ -129,7 +133,7 @@ class WikiController extends AbstractController
                 return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
             }
 
-            // Formulaire pour ajouter un wiki enfant (réservé au propriétaire)
+            // Formulaire pour ajouter un wiki enfant
             $childWiki = new WikiPage();
             $childForm = $this->createForm(WikiPageType::class, $childWiki);
             $childForm->handleRequest($request);
@@ -160,12 +164,26 @@ class WikiController extends AbstractController
 
                 return $this->redirectToRoute('app_wiki_show', ['id' => $childWiki->getId()]);
             }
+
+            // Formulaire pour créer un pattern de créneau d'agenda (routine) pour ce wiki
+            $agendaPattern = new AgendaSlotPattern();
+            $agendaPattern->setWikiPage($wikiPage);
+            $agendaForm = $this->createForm(AgendaSlotPatternType::class, $agendaPattern);
+            $agendaForm->handleRequest($request);
+
+            if ($agendaForm->isSubmitted() && $agendaForm->isValid()) {
+                $em->persist($agendaPattern);
+                $em->flush();
+
+                return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+            }
         }
 
         return $this->render('wiki/index.html.twig', [
             'page' => $wikiPage,
             'articleForm' => $articleForm,
             'childWikiForm' => $childForm,
+            'agendaForm' => $agendaForm,
             'isOwner' => $isOwner,
         ]);
     }

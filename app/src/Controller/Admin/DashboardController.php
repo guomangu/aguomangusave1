@@ -2,8 +2,12 @@
 
 namespace App\Controller\Admin;
 use App\Entity\WikiPage;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator; // <--- Ajoute ça
-use App\Controller\Admin\WikiPageCrudController; // <--- Ajoute ça (Vérifie que le nom est bon)
+use App\Entity\Article;
+use App\Entity\Agenda;
+use App\Entity\AgendaSlotPattern;
+use App\Entity\Utilisateurs;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use App\Controller\Admin\WikiPageCrudController;
 
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -53,7 +57,10 @@ class DashboardController extends AbstractDashboardController
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
-        // yield MenuItem::linkToCrud('The Label', 'fas fa-list', EntityClass::class);
         yield MenuItem::linkToCrud('Mes Pages Wiki', 'fa fa-file-text', WikiPage::class);
+        yield MenuItem::linkToCrud('Articles', 'fa fa-newspaper', Article::class);
+        yield MenuItem::linkToCrud('Créneaux réservés', 'fa fa-calendar-check', Agenda::class);
+        yield MenuItem::linkToCrud('Routines de créneaux', 'fa fa-calendar', AgendaSlotPattern::class);
+        yield MenuItem::linkToCrud('Utilisateurs', 'fa fa-users', Utilisateurs::class);
     }
 }
