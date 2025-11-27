@@ -49,6 +49,36 @@
                 </button>
             {{ form_end(wikiForm) }}
         </div>
+
+        <hr class="my-6">
+
+        <h2 class="text-xl font-semibold mb-3">Ses réservations de créneaux</h2>
+
+        {% if reservations is empty %}
+            <p class="text-gray-500 mb-2 text-sm">Aucune réservation de créneau pour l’instant.</p>
+        {% else %}
+            <ul class="space-y-2">
+                {% for r in reservations %}
+                    <li class="border rounded p-3 flex items-center justify-between text-sm">
+                        <div>
+                            <div class="font-semibold">
+                                {{ r.title }}
+                                {% if r.wikiPage %}
+                                    <span class="text-gray-500">sur</span>
+                                    <a href="{{ path('app_wiki_show', {id: r.wikiPage.id}) }}"
+                                       class="text-blue-600 hover:underline">
+                                        {{ r.wikiPage.title }}
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="text-gray-600">
+                                {{ r.start|date('d/m/Y H:i') }} → {{ r.end|date('d/m/Y H:i') }}
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 
 {% endblock %}

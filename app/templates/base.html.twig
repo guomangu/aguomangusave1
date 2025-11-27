@@ -2,6 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Welcome!{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
@@ -13,11 +14,16 @@
     </head>
     <body class="bg-gray-100 min-h-screen">
         <header class="bg-white shadow mb-6">
-            <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-                <div class="text-lg font-bold text-gray-800">
-                    Mon Wiki
-                </div>
-                <nav class="space-x-3 flex items-center">
+            <div class="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:items-center sm:justify-between">
+
+                
+                <a href="{{ path('app_home') }}">
+                    <div class="text-lg font-bold text-gray-800">
+                        Mon Wiki
+                    </div>
+                </a>
+
+                <nav class="space-x-2 sm:space-x-3 flex flex-wrap items-center justify-start sm:justify-end gap-2">
                     <a href="{{ path('app_wiki_index') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
                         <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
                             Wiki public

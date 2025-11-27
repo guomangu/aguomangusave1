@@ -22,6 +22,11 @@ class AgendaBookingController extends AbstractController
         AgendaSlotPatternRepository $patternRepo,
         EntityManagerInterface $em
     ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            $this->addFlash('error', 'Vous devez être connecté pour réserver un créneau.');
+            return $this->redirectToRoute('app_login');
+        }
         $wikiId = $request->query->get('wikiId');
         $patternId = $request->query->get('patternId');
         $startParam = $request->query->get('start');
@@ -82,6 +87,7 @@ class AgendaBookingController extends AbstractController
         $agenda->setTitle($pattern->getTitle());
         $agenda->setStart($occurrenceStart);
         $agenda->setEnd($occurrenceEnd);
+        $agenda->setUser($user);
 
         $em->persist($agenda);
         $em->flush();

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Utilisateurs;
 use App\Entity\WikiPage;
+use App\Entity\Agenda;
 use App\Form\UserType;
 use App\Form\WikiPageType;
 use App\Repository\UtilisateursRepository;
@@ -78,11 +79,16 @@ class UserController extends AbstractController
         }
 
         $wikis = $user->getWikiPages();
+        $reservations = $em->getRepository(Agenda::class)->findBy(
+            ['user' => $user],
+            ['start' => 'ASC']
+        );
 
         return $this->render('user/public.html.twig', [
             'user' => $user,
             'wikiForm' => $form,
             'wikis' => $wikis,
+            'reservations' => $reservations,
         ]);
     }
 }

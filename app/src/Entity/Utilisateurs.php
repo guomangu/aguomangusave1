@@ -41,9 +41,13 @@ class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'owner', targetEntity: WikiPage::class)]
     private Collection $wikiPages;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Agenda::class)]
+    private Collection $reservations;
+
     public function __construct()
     {
         $this->wikiPages = new ArrayCollection();
+        $this->reservations = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -162,6 +166,35 @@ class Utilisateurs implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->wikiPages->removeElement($wikiPage)) {
             if ($wikiPage->getOwner() === $this) {
                 $wikiPage->setOwner(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Agenda>
+     */
+    public function getReservations(): Collection
+    {
+        return $this->reservations;
+    }
+
+    public function addReservation(Agenda $reservation): static
+    {
+        if (!$this->reservations->contains($reservation)) {
+            $this->reservations->add($reservation);
+            $reservation->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReservation(Agenda $reservation): static
+    {
+        if ($this->reservations->removeElement($reservation)) {
+            if ($reservation->getUser() === $this) {
+                $reservation->setUser(null);
             }
         }
 

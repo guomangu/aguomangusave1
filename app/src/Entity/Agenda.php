@@ -30,6 +30,10 @@ class Agenda
     #[ORM\JoinColumn(nullable: true)]
     private ?AgendaSlotPattern $slotPattern = null;
 
+    #[ORM\ManyToOne(inversedBy: 'reservations')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Utilisateurs $user = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -91,6 +95,18 @@ class Agenda
     public function setSlotPattern(?AgendaSlotPattern $slotPattern): static
     {
         $this->slotPattern = $slotPattern;
+
+        return $this;
+    }
+
+    public function getUser(): ?Utilisateurs
+    {
+        return $this->user;
+    }
+
+    public function setUser(?Utilisateurs $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }
