@@ -40,8 +40,17 @@ class LocationTag
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
 
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $longitude = null; // Coordonnée longitude (lon du CSV)
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $latitude = null; // Coordonnée latitude (lat du CSV)
+
     #[ORM\ManyToMany(targetEntity: WikiPage::class, mappedBy: 'locationTags')]
     private Collection $wikiPages;
+
+    #[ORM\OneToOne(mappedBy: 'locationTag', targetEntity: Forum::class, cascade: ['persist', 'remove'])]
+    private ?Forum $forum = null;
 
     public function __construct()
     {
@@ -197,6 +206,46 @@ class LocationTag
     public function __toString(): string
     {
         return (string) $this->name;
+    }
+
+    public function getForum(): ?Forum
+    {
+        return $this->forum;
+    }
+
+    public function setForum(?Forum $forum): static
+    {
+        if ($forum && $forum->getLocationTag() !== $this) {
+            $forum->setLocationTag($this);
+        }
+
+        $this->forum = $forum;
+
+        return $this;
+    }
+
+    public function getLongitude(): ?float
+    {
+        return $this->longitude;
+    }
+
+    public function setLongitude(?float $longitude): static
+    {
+        $this->longitude = $longitude;
+
+        return $this;
+    }
+
+    public function getLatitude(): ?float
+    {
+        return $this->latitude;
+    }
+
+    public function setLatitude(?float $latitude): static
+    {
+        $this->latitude = $latitude;
+
+        return $this;
     }
 }
 

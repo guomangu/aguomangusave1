@@ -207,10 +207,23 @@ class WikiController extends AbstractController
                 return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
             }
 
-            // Formulaire de recherche de localisation (CSV)
-            $locationSearchQuery = (string) $request->query->get('loc_q', '');
-            if ($locationSearchQuery !== '') {
-                $locationSearchResults = $locationTagService->searchPlaces($locationSearchQuery, 10);
+            // Vérifier si le wiki a déjà des tags officiels (non-custom)
+            $hasOfficialTags = false;
+            foreach ($wikiPage->getLocationTags() as $tag) {
+                if ($tag->getType() !== 'custom') {
+                    $hasOfficialTags = true;
+                    break;
+                }
+            }
+
+            // Formulaire de recherche de localisation (CSV) - seulement si pas de tags officiels déjà présents
+            $locationSearchQuery = '';
+            $locationSearchResults = [];
+            if (!$hasOfficialTags) {
+                $locationSearchQuery = (string) $request->query->get('loc_q', '');
+                if ($locationSearchQuery !== '') {
+                    $locationSearchResults = $locationTagService->searchPlaces($locationSearchQuery, 10);
+                }
             }
 
             // Formulaire de tag personnalisé libre (titre + description), toujours lié au wiki
@@ -244,6 +257,18 @@ class WikiController extends AbstractController
                 $em->flush();
 
                 return $this->redirectToRoute('app_wiki_show', ['id' => $wikiPage->getId()]);
+            }
+        }
+
+        // Vérifier si le wiki a déjà des tags officiels (non-custom) pour l'affichage
+        // (doit être accessible même si l'utilisateur n'est pas propriétaire)
+        if (!isset($hasOfficialTags)) {
+            $hasOfficialTags = false;
+            foreach ($wikiPage->getLocationTags() as $tag) {
+                if ($tag->getType() !== 'custom') {
+                    $hasOfficialTags = true;
+                    break;
+                }
             }
         }
 
@@ -291,6 +316,7 @@ class WikiController extends AbstractController
             'locationSearchQuery' => $locationSearchQuery,
             'locationSearchResults' => $locationSearchResults,
             'customLocationForm' => $customLocationForm,
+            'hasOfficialTags' => $hasOfficialTags,
         ]);
     }
     

@@ -24,18 +24,19 @@
             {% set locTags = page.locationTags ?? [] %}
             {% if locTags is not empty %}
                 <div class="mb-4 flex flex-wrap gap-2">
-                    {% for tag in locTags %}
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs
-                                     bg-gray-100 text-gray-700 border border-gray-200">
-                            {% if tag.type == 'custom' and tag.description %}
-                                {{ tag.description }} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.name }})</span>
-                            {% elseif tag.type == 'custom' %}
-                                {{ tag.name }}
-                            {% else %}
-                                {{ tag.name }}{% if tag.type %} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.type }})</span>{% endif %}
-                            {% endif %}
-                        </span>
-                    {% endfor %}
+                        {% for tag in locTags %}
+                            <a href="{{ path('app_tag_show', {id: tag.id}) }}"
+                               class="inline-flex items-center px-2 py-1 rounded-full text-xs
+                                      bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
+                                {% if tag.type == 'custom' and tag.description %}
+                                    {{ tag.description }} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.name }})</span>
+                                {% elseif tag.type == 'custom' %}
+                                    {{ tag.name }}
+                                {% else %}
+                                    {{ tag.name }}{% if tag.type %} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.type }})</span>{% endif %}
+                                {% endif %}
+                            </a>
+                        {% endfor %}
                 </div>
             {% endif %}
 
@@ -175,8 +176,9 @@
                 {% else %}
                     <div class="flex flex-wrap gap-2 mb-4">
                         {% for tag in locTags %}
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs
-                                         bg-gray-100 text-gray-700 border border-gray-200">
+                            <a href="{{ path('app_tag_show', {id: tag.id}) }}"
+                               class="inline-flex items-center px-2 py-1 rounded-full text-xs
+                                      bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
                                 {% if tag.type == 'custom' and tag.description %}
                                     {{ tag.description }} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.name }})</span>
                                 {% elseif tag.type == 'custom' %}
@@ -184,66 +186,75 @@
                                 {% else %}
                                     {{ tag.name }}{% if tag.type %} <span class="ml-1 text-[10px] uppercase text-gray-400">({{ tag.type }})</span>{% endif %}
                                 {% endif %}
-                            </span>
+                            </a>
                         {% endfor %}
                     </div>
                 {% endif %}
 
                 {% if isOwner %}
-                    {# Recherche de localisation via CSV #}
-                    <div class="mt-4 mb-6">
-                        <h3 class="text-sm font-semibold mb-2">Ajouter depuis la base officielle (adresses 68)</h3>
-                        <form method="get" action="{{ path('app_wiki_show', {id: page.id}) }}" class="flex flex-col sm:flex-row gap-2">
-                            <input
-                                type="search"
-                                name="loc_q"
-                                value="{{ locationSearchQuery }}"
-                                class="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Ex : 7 rue de la mairie Colmar ou 68000 Colmar..."
-                            >
-                            <button
-                                type="submit"
-                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
-                            >
-                                Chercher
-                            </button>
-                        </form>
+                    {# Recherche de localisation via CSV - seulement si pas de tags officiels déjà présents #}
+                    {% if not hasOfficialTags %}
+                        <div class="mt-4 mb-6">
+                            <h3 class="text-sm font-semibold mb-2">Ajouter depuis la base officielle (adresses 68)</h3>
+                            <form method="get" action="{{ path('app_wiki_show', {id: page.id}) }}" class="flex flex-col sm:flex-row gap-2">
+                                <input
+                                    type="search"
+                                    name="loc_q"
+                                    value="{{ locationSearchQuery }}"
+                                    class="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ex : 7 rue de la mairie Colmar ou 68000 Colmar..."
+                                >
+                                <button
+                                    type="submit"
+                                    class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                                >
+                                    Chercher
+                                </button>
+                            </form>
 
-                        {% if locationSearchQuery is not empty %}
-                            <p class="mt-2 text-xs text-gray-500">
-                                Résultats pour « {{ locationSearchQuery }} » :
-                            </p>
+                            {% if locationSearchQuery is not empty %}
+                                <p class="mt-2 text-xs text-gray-500">
+                                    Résultats pour « {{ locationSearchQuery }} » :
+                                </p>
 
-                            {% if locationSearchResults is empty %}
-                                <p class="text-gray-500 text-sm mt-1">Aucune adresse trouvée.</p>
-                            {% else %}
-                                <ul class="mt-2 space-y-1 text-sm">
-                                    {% for r in locationSearchResults %}
-                                        <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white border border-gray-200 rounded px-3 py-2">
-                                            <div class="text-gray-800">
-                                                <div class="font-semibold">
-                                                    {% if r.numero %}{{ r.numero }} {% endif %}
-                                                    {% if r.nom_voie %}{{ r.nom_voie }}{% endif %}
+                                {% if locationSearchResults is empty %}
+                                    <p class="text-gray-500 text-sm mt-1">Aucune adresse trouvée.</p>
+                                {% else %}
+                                    <ul class="mt-2 space-y-1 text-sm">
+                                        {% for r in locationSearchResults %}
+                                            <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white border border-gray-200 rounded px-3 py-2">
+                                                <div class="text-gray-800">
+                                                    <div class="font-semibold">
+                                                        {% if r.numero %}{{ r.numero }} {% endif %}
+                                                        {% if r.nom_voie %}{{ r.nom_voie }}{% endif %}
+                                                    </div>
+                                                    <div class="text-gray-600 text-xs">
+                                                        France &gt; Grand Est &gt; {{ r.nom_commune }}{% if r.code_postal %} ({{ r.code_postal }}){% endif %}
+                                                    </div>
                                                 </div>
-                                                <div class="text-gray-600 text-xs">
-                                                    France &gt; Grand Est &gt; {{ r.nom_commune }}{% if r.code_postal %} ({{ r.code_postal }}){% endif %}
-                                                </div>
-                                            </div>
-                                            <form method="post"
-                                                  action="{{ path('app_wiki_location_attach', {id: page.id, externalId: r.id}) }}"
-                                                  class="mt-2 sm:mt-0"
-                                            >
-                                                <input type="hidden" name="_token" value="{{ csrf_token('attach_location' ~ page.id ~ r.id) }}">
-                                                <button class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
-                                                    Associer
-                                                </button>
-                                            </form>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+                                                <form method="post"
+                                                      action="{{ path('app_wiki_location_attach', {id: page.id, externalId: r.id}) }}"
+                                                      class="mt-2 sm:mt-0"
+                                                >
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('attach_location' ~ page.id ~ r.id) }}">
+                                                    <button class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+                                                        Associer
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
                             {% endif %}
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% else %}
+                        <div class="mt-4 mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <p class="text-sm text-blue-800">
+                                <strong>Une adresse officielle est déjà associée à ce wiki.</strong><br>
+                                <span class="text-xs text-blue-600">Vous ne pouvez ajouter qu'une seule adresse officielle. Vous pouvez toujours ajouter des tags personnalisés ci-dessous.</span>
+                            </p>
+                        </div>
+                    {% endif %}
 
                     {# Tags personnalisés #}
                     <div class="mt-4">

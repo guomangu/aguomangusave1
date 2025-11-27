@@ -121,6 +121,8 @@ class LocationTagService
         $codePostal  = $record['code_postal'] ?? null;
         $codeInsee   = $record['code_insee'] ?? null;
         $externalId  = $record['id'] ?? null;
+        $longitude   = !empty($record['lon']) ? (float) $record['lon'] : null;
+        $latitude    = !empty($record['lat']) ? (float) $record['lat'] : null;
 
         // Niveau 0 : France
         $franceTag = $this->locationTagRepository->findOneBy([
@@ -131,6 +133,7 @@ class LocationTagService
             $franceTag = new LocationTag();
             $franceTag->setName('France')->setType('pays');
             $this->em->persist($franceTag);
+            $this->em->flush(); // Flush pour obtenir l'ID
         }
         $wikiPage->addLocationTag($franceTag);
         $tags[] = $franceTag;
@@ -147,17 +150,30 @@ class LocationTagService
                 ->setType('region')
                 ->setParent($franceTag);
             $this->em->persist($regionTag);
+            $this->em->flush(); // Flush pour obtenir l'ID
         }
         $wikiPage->addLocationTag($regionTag);
         $tags[] = $regionTag;
 
         // Niveau 2 : commune
+        // Recherche d'abord par code_insee pour éviter les doublons
         if ($communeName) {
-            $communeTag = $this->locationTagRepository->findOneBy([
-                'name' => $communeName,
-                'type' => 'commune',
-                'parent' => $regionTag,
-            ]);
+            $communeTag = null;
+            if ($codeInsee) {
+                $communeTag = $this->locationTagRepository->findOneBy([
+                    'codeInsee' => $codeInsee,
+                    'type' => 'commune',
+                ]);
+            }
+            
+            // Si pas trouvé par code_insee, chercher par nom + parent
+            if (!$communeTag) {
+                $communeTag = $this->locationTagRepository->findOneBy([
+                    'name' => $communeName,
+                    'type' => 'commune',
+                    'parent' => $regionTag,
+                ]);
+            }
 
             if (!$communeTag) {
                 $communeTag = new LocationTag();
@@ -165,43 +181,106 @@ class LocationTagService
                     ->setType('commune')
                     ->setParent($regionTag)
                     ->setCodePostal($codePostal)
-                    ->setCodeInsee($codeInsee);
+                    ->setCodeInsee($codeInsee)
+                    ->setLongitude($longitude)
+                    ->setLatitude($latitude);
 
                 $this->em->persist($communeTag);
+                $this->em->flush(); // Flush pour obtenir l'ID avant utilisation dans requête suivante
+            } else {
+                // Mettre à jour les coordonnées si elles sont manquantes
+                if (!$communeTag->getLongitude() && $longitude) {
+                    $communeTag->setLongitude($longitude);
+                }
+                if (!$communeTag->getLatitude() && $latitude) {
+                    $communeTag->setLatitude($latitude);
+                }
+                // S'assurer que le parent est correct
+                if (!$communeTag->getParent()) {
+                    $communeTag->setParent($regionTag);
+                }
             }
 
             $wikiPage->addLocationTag($communeTag);
             $tags[] = $communeTag;
 
-            // Niveau 3 : voie
-            if ($voieName) {
-                $voieTag = $this->locationTagRepository->findOneBy([
-                    'name' => $voieName,
-                    'type' => 'voie',
-                    'parent' => $communeTag,
-                ]);
+                // Niveau 3 : voie
+                // Recherche par nom + parent (commune) + code_insee pour éviter les doublons
+                if ($voieName) {
+                    $voieTag = null;
+                    // Chercher d'abord par nom + parent + code_insee
+                    // Utiliser l'ID du parent au lieu de l'entité pour éviter l'erreur
+                    if ($codeInsee && $communeTag->getId()) {
+                        $qb = $this->locationTagRepository->createQueryBuilder('t')
+                            ->where('t.name = :name')
+                            ->andWhere('t.type = :type')
+                            ->andWhere('t.parent = :parentId')
+                            ->andWhere('t.codeInsee = :codeInsee')
+                            ->setParameter('name', $voieName)
+                            ->setParameter('type', 'voie')
+                            ->setParameter('parentId', $communeTag->getId())
+                            ->setParameter('codeInsee', $codeInsee)
+                            ->setMaxResults(1);
+                        $voieTag = $qb->getQuery()->getOneOrNullResult();
+                    }
+                    
+                    // Si pas trouvé, chercher par nom + parent uniquement
+                    if (!$voieTag) {
+                        $voieTag = $this->locationTagRepository->findOneBy([
+                            'name' => $voieName,
+                            'type' => 'voie',
+                            'parent' => $communeTag,
+                        ]);
+                    }
 
-                if (!$voieTag) {
-                    $voieTag = new LocationTag();
-                    $voieTag->setName($voieName)
-                        ->setType('voie')
-                        ->setParent($communeTag)
-                        ->setCodePostal($codePostal)
-                        ->setCodeInsee($codeInsee);
+                    if (!$voieTag) {
+                        $voieTag = new LocationTag();
+                        $voieTag->setName($voieName)
+                            ->setType('voie')
+                            ->setParent($communeTag)
+                            ->setCodePostal($codePostal)
+                            ->setCodeInsee($codeInsee)
+                            ->setLongitude($longitude)
+                            ->setLatitude($latitude);
 
-                    $this->em->persist($voieTag);
+                        $this->em->persist($voieTag);
+                        $this->em->flush(); // Flush pour obtenir l'ID avant utilisation dans requête suivante
+                    } else {
+                    // Mettre à jour les coordonnées si elles sont manquantes
+                    if (!$voieTag->getLongitude() && $longitude) {
+                        $voieTag->setLongitude($longitude);
+                    }
+                    if (!$voieTag->getLatitude() && $latitude) {
+                        $voieTag->setLatitude($latitude);
+                    }
+                    // S'assurer que le parent est correct
+                    if ($voieTag->getParent() !== $communeTag) {
+                        $voieTag->setParent($communeTag);
+                    }
                 }
 
                 $wikiPage->addLocationTag($voieTag);
                 $tags[] = $voieTag;
 
                 // Niveau 4 : numéro
+                // Recherche par externalId d'abord (unique), sinon par nom + parent
                 if ($numero !== null && $numero !== '') {
-                    $numeroTag = $this->locationTagRepository->findOneBy([
-                        'name' => $numero,
-                        'type' => 'numero',
-                        'parent' => $voieTag,
-                    ]);
+                    $numeroTag = null;
+                    if ($externalId) {
+                        $numeroTag = $this->locationTagRepository->findOneBy([
+                            'externalId' => $externalId,
+                            'type' => 'numero',
+                        ]);
+                    }
+                    
+                    // Si pas trouvé par externalId, chercher par nom + parent
+                    if (!$numeroTag) {
+                        $numeroTag = $this->locationTagRepository->findOneBy([
+                            'name' => $numero,
+                            'type' => 'numero',
+                            'parent' => $voieTag,
+                        ]);
+                    }
 
                     if (!$numeroTag) {
                         $numeroTag = new LocationTag();
@@ -210,9 +289,28 @@ class LocationTagService
                             ->setParent($voieTag)
                             ->setCodePostal($codePostal)
                             ->setCodeInsee($codeInsee)
-                            ->setExternalId($externalId);
+                            ->setExternalId($externalId)
+                            ->setLongitude($longitude)
+                            ->setLatitude($latitude);
 
                         $this->em->persist($numeroTag);
+                        // Pas besoin de flush ici, on flush à la fin
+                    } else {
+                        // Mettre à jour les coordonnées si elles sont manquantes
+                        if (!$numeroTag->getLongitude() && $longitude) {
+                            $numeroTag->setLongitude($longitude);
+                        }
+                        if (!$numeroTag->getLatitude() && $latitude) {
+                            $numeroTag->setLatitude($latitude);
+                        }
+                        // S'assurer que le parent est correct
+                        if ($numeroTag->getParent() !== $voieTag) {
+                            $numeroTag->setParent($voieTag);
+                        }
+                        // Mettre à jour externalId si manquant
+                        if (!$numeroTag->getExternalId() && $externalId) {
+                            $numeroTag->setExternalId($externalId);
+                        }
                     }
 
                     $wikiPage->addLocationTag($numeroTag);

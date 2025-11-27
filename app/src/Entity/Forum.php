@@ -16,8 +16,12 @@ class Forum
     private ?int $id = null;
 
     #[ORM\OneToOne(inversedBy: 'forum', cascade: ['persist', 'remove'])]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?WikiPage $wikiPage = null;
+
+    #[ORM\OneToOne(inversedBy: 'forum', cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?LocationTag $locationTag = null;
 
     #[ORM\OneToMany(mappedBy: 'forum', targetEntity: Message::class, orphanRemoval: true)]
     private Collection $messages;
@@ -40,6 +44,18 @@ class Forum
     public function setWikiPage(?WikiPage $wikiPage): static
     {
         $this->wikiPage = $wikiPage;
+
+        return $this;
+    }
+
+    public function getLocationTag(): ?LocationTag
+    {
+        return $this->locationTag;
+    }
+
+    public function setLocationTag(?LocationTag $locationTag): static
+    {
+        $this->locationTag = $locationTag;
 
         return $this;
     }

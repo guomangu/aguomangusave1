@@ -30,25 +30,73 @@
                 Résultats pour « {{ query }} » :
             </p>
 
-            {% if results is empty %}
-                <p class="text-gray-500">Aucun wiki trouvé.</p>
-            {% else %}
-                <ul class="space-y-3">
-                    {% for page in results %}
-                        <li class="border border-gray-200 rounded-md p-3 flex items-center justify-between bg-white shadow-sm">
-                            <div>
-                                <a href="{{ path('app_wiki_show', {id: page.id}) }}"
-                                   class="font-semibold text-blue-600 hover:underline">
-                                    {{ page.title }}
-                                </a>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+            <div class="space-y-6">
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-700 mb-2">Pages wiki</h2>
+                    {% if results is empty %}
+                        <p class="text-gray-500 text-sm">Aucun wiki trouvé.</p>
+                    {% else %}
+                        <ul class="space-y-3">
+                            {% for page in results %}
+                                <li class="border border-gray-200 rounded-md p-3 flex items-center justify-between bg-white shadow-sm">
+                                    <div>
+                                        <a href="{{ path('app_wiki_show', {id: page.id}) }}"
+                                           class="font-semibold text-blue-600 hover:underline">
+                                            {{ page.title }}
+                                        </a>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-700 mb-2">Tags de localisation</h2>
+                    {% if tagResults is empty %}
+                        <p class="text-gray-500 text-sm">Aucun tag trouvé.</p>
+                    {% else %}
+                        <ul class="space-y-2 text-sm">
+                            {% for tag in tagResults %}
+                                <li class="border border-gray-200 rounded-md px-3 py-2 bg-white shadow-sm">
+                                    <div class="flex flex-col gap-1">
+                                        <div>
+                                            <a href="{{ path('app_tag_show', {id: tag.id}) }}"
+                                               class="font-semibold text-blue-600 hover:underline">
+                                                {{ tag.description ?: tag.name }}
+                                            </a>
+                                            {% if tag.type %}
+                                                <span class="ml-2 text-[10px] uppercase text-gray-400">
+                                                    ({{ tag.type }})
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        {# Affichage de la hiérarchie des parents #}
+                                        {% set tagParents = tagsWithParents[tag.id] ?? [] %}
+                                        {% if tagParents is not empty %}
+                                            <div class="text-xs text-gray-500 flex flex-wrap items-center gap-1">
+                                                <span class="text-gray-400">Dans :</span>
+                                                {% for parent in tagParents %}
+                                                    <a href="{{ path('app_tag_show', {id: parent.id}) }}"
+                                                       class="text-blue-500 hover:underline">
+                                                        {{ parent.name }}
+                                                    </a>
+                                                    {% if not loop.last %}
+                                                        <span class="text-gray-400">›</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
         {% else %}
             <p class="text-gray-500 text-center">
-                Commence par taper un mot-clé pour chercher dans les pages wiki.
+                Commence par taper un mot-clé pour chercher dans les pages wiki ou les tags de localisation.
             </p>
         {% endif %}
     </div>
