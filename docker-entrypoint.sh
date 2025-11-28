@@ -41,12 +41,9 @@ run_migrations() {
         return
     fi
 
-    # Vérifier d'abord si les tables existent déjà
+    # Vérifier d'abord si les tables existent déjà en validant le schéma
     echo "[Migrations] Vérification de l'existence des tables..."
-    # Utiliser une requête qui fonctionne avec PostgreSQL (peut être sensible à la casse)
-    if php bin/console doctrine:query:sql "SELECT 1 FROM \"utilisateurs\" LIMIT 1" > /dev/null 2>&1 || \
-       php bin/console doctrine:query:sql "SELECT 1 FROM utilisateurs LIMIT 1" > /dev/null 2>&1 || \
-       php bin/console doctrine:query:sql "SELECT 1 FROM information_schema.tables WHERE table_name = 'utilisateurs'" > /dev/null 2>&1; then
+    if php bin/console doctrine:schema:validate 2>&1 | grep -q "mapping.*OK"; then
         echo "[Migrations] ✓ Les tables existent déjà, pas besoin de migration"
         return 0
     fi
@@ -56,10 +53,8 @@ run_migrations() {
     if php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1; then
         echo "[Migrations] Migrations exécutées"
         
-        # Vérifier que ça a fonctionné (essayer plusieurs variantes pour PostgreSQL)
-        if php bin/console doctrine:query:sql "SELECT 1 FROM \"utilisateurs\" LIMIT 1" > /dev/null 2>&1 || \
-           php bin/console doctrine:query:sql "SELECT 1 FROM utilisateurs LIMIT 1" > /dev/null 2>&1 || \
-           php bin/console doctrine:query:sql "SELECT 1 FROM information_schema.tables WHERE table_name = 'utilisateurs'" > /dev/null 2>&1; then
+        # Vérifier que ça a fonctionné en validant le schéma
+        if php bin/console doctrine:schema:validate 2>&1 | grep -q "mapping.*OK"; then
             echo "[Migrations] ✓ Tables créées via migrations"
             return 0
         fi
@@ -73,25 +68,13 @@ run_migrations() {
         # Attendre un peu pour que PostgreSQL finalise la création
         sleep 1
         
-        # Vérifier que la table utilisateurs existe maintenant (essayer plusieurs variantes)
-        echo "[Migrations] Vérification de l'existence de la table..."
-        
-        # Lister toutes les tables pour debug
-        echo "[Migrations] Tables créées dans la base de données :"
-        php bin/console doctrine:query:sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'" 2>&1 | grep -v "table_name" | head -20 || true
-        
-        # Vérifier avec différentes méthodes
-        if php bin/console doctrine:query:sql "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'utilisateurs'" > /dev/null 2>&1; then
-            echo "[Migrations] ✓ Table 'utilisateurs' vérifiée via information_schema"
-            return 0
-        elif php bin/console doctrine:query:sql "SELECT 1 FROM \"utilisateurs\" LIMIT 1" > /dev/null 2>&1; then
-            echo "[Migrations] ✓ Table 'utilisateurs' vérifiée (avec guillemets)"
-            return 0
-        elif php bin/console doctrine:query:sql "SELECT 1 FROM utilisateurs LIMIT 1" > /dev/null 2>&1; then
-            echo "[Migrations] ✓ Table 'utilisateurs' vérifiée (sans guillemets)"
+        # Vérifier que le schéma est valide
+        echo "[Migrations] Vérification de la validité du schéma..."
+        if php bin/console doctrine:schema:validate 2>&1 | grep -q "mapping.*OK"; then
+            echo "[Migrations] ✓ Schéma validé avec succès"
             return 0
         else
-            echo "[Migrations] ⚠ La table 'utilisateurs' n'a pas pu être vérifiée, mais le schéma a été créé"
+            echo "[Migrations] ⚠ Le schéma n'a pas pu être validé, mais il a été créé"
             echo "[Migrations] Le site devrait fonctionner quand même"
             return 0  # On retourne 0 car le schéma a été créé avec succès
         fi
