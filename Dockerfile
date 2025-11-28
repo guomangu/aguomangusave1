@@ -20,16 +20,14 @@ WORKDIR /app
 # Copie de Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# --- CORRECTION MAJEURE ICI ---
 # On copie les fichiers de dépendances DEPUIS le dossier 'app/' vers la racine du conteneur
 COPY app/composer.* ./
 # On essaie de copier symfony.lock s'il existe (via wildcard pour éviter l'erreur)
 COPY app/symfony.* ./
 
-# Installation des dépendances
+# Installation des dépendances PHP
 RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --optimize-autoloader
 
-# --- SECONDE CORRECTION ---
 # On copie tout le reste du code DEPUIS le dossier 'app/'
 COPY app/ .
 
@@ -37,10 +35,16 @@ COPY app/ .
 RUN mkdir -p var/cache var/log && \
     chmod -R 777 var/
 
-# --- ÉTAPE TAILWIND ---
-# Installation et compilation des assets
+# --- ÉTAPE ASSETS (TAILWIND & JS) ---
+# 1. Installation des dépendances JavaScript (Stimulus, Turbo, etc.)
+# C'est cette ligne qui manquait pour corriger l'erreur :
+RUN php bin/console importmap:install
+
+# 2. Installation et compilation de Tailwind
 RUN php bin/console tailwind:install --no-interaction || true
 RUN php bin/console tailwind:build --minify || echo "Tailwind build skipped"
+
+# 3. Installation finale des assets dans le dossier public
 RUN php bin/console assets:install public
 
 # Nettoyage final du cache
