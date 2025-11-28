@@ -3,46 +3,35 @@ set -e
 
 # Fonction pour exécuter les migrations en arrière-plan
 run_migrations() {
-    # Attendre que la base de données soit prête (utile si PostgreSQL démarre en même temps)
-    echo "[Migrations] Vérification de la connexion à la base de données..."
+    echo "[Migrations] Démarrage du processus de migration en arrière-plan..."
+    
+    # Attente active de la base de données (Max 60 secondes)
     max_attempts=30
     attempt=0
     
-    while [ $attempt -lt $max_attempts ]; do
-        if php bin/console doctrine:query:sql "SELECT 1" > /dev/null 2>&1; then
-            echo "[Migrations] Connexion à la base de données réussie"
-            break
-        fi
+    until php bin/console doctrine:query:sql "SELECT 1" > /dev/null 2>&1; do
         attempt=$((attempt + 1))
-        if [ $attempt -lt $max_attempts ]; then
-            echo "[Migrations] Tentative $attempt/$max_attempts : En attente de la base de données..."
-            sleep 2
-        else
-            echo "[Migrations] Avertissement: Impossible de se connecter à la base de données après $max_attempts tentatives"
-            echo "[Migrations] Les migrations seront réessayées plus tard"
+        if [ $attempt -ge $max_attempts ]; then
+            echo "[Migrations] ERREUR: Timeout - La base de données n'est pas accessible."
             return 1
         fi
+        echo "[Migrations] En attente de la base de données... ($attempt/$max_attempts)"
+        sleep 2
     done
 
-    # Exécuter les migrations seulement si la connexion est réussie
-    if php bin/console doctrine:query:sql "SELECT 1" > /dev/null 2>&1; then
-        echo "[Migrations] Exécution des migrations..."
-        if php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1; then
-            echo "[Migrations] Migrations exécutées avec succès"
-            return 0
-        else
-            echo "[Migrations] Avertissement: Erreur lors de l'exécution des migrations (peut être normal si les tables existent déjà)"
-            return 1
-        fi
-    fi
+    echo "[Migrations] Base de données connectée. Lancement des migrations..."
     
-    return 1
+    # On ignore les erreurs ici pour ne pas crasher le script complet si une migration échoue
+    php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "[Migrations] Échec des migrations"
+    
+    echo "[Migrations] Terminé."
 }
 
-# Lancer les migrations en arrière-plan pour ne pas bloquer le démarrage du serveur
+# 1. On lance la fonction en arrière-plan
 run_migrations &
 
-# Lancer FrankenPHP immédiatement (ne pas attendre les migrations)
-echo "Démarrage du serveur web..."
-exec frankenphp run --config /etc/caddy/Caddyfile
+# 2. Démarrage immédiat du serveur Web (C'est ce qui valide le Health Check)
+echo "Démarrage de FrankenPHP..."
 
+# Le 'exec' est crucial : il remplace le processus shell par FrankenPHP
+exec frankenphp run --config /etc/caddy/Caddyfile

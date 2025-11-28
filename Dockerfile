@@ -1,15 +1,13 @@
 # Étape 1 : Image de base FrankenPHP
 FROM dunglas/frankenphp
 
-# Force l'environnement de production immédiatement
+# Force l'environnement de production
 ENV APP_ENV=prod
 
-# --- CORRECTION ICI ---
-# On installe curl et ca-certificates pour pouvoir télécharger le binaire Tailwind
+# Installation des dépendances système (curl, git, unzip, etc.)
 RUN apt-get update && apt-get install -y curl git unzip ca-certificates
-# ----------------------
 
-# Installation des extensions PHP requises
+# Installation des extensions PHP
 RUN install-php-extensions \
     pdo_pgsql \
     intl \
@@ -17,50 +15,42 @@ RUN install-php-extensions \
     opcache \
     apcu
 
-# Définition du dossier de travail
 WORKDIR /app
 
-# Copie de Composer
+# Copie de Composer et des fichiers de définition
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Copie des fichiers de dépendances (depuis le dossier app/)
 COPY app/composer.* ./
 COPY app/symfony.* ./
 
-# Installation des dépendances
+# Installation des dépendances PHP
 RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --optimize-autoloader
 
-# Copie du reste du code
+# Copie du code source
 COPY app/ .
 
-# Création des dossiers de cache et sessions
+# Permissions pour le cache et les logs
 RUN mkdir -p var/cache var/log var/sessions && \
     chmod -R 777 var/
 
-# --- CONFIGURATION DU SERVEUR (La partie ajoutée) ---
-# On copie le Caddyfile qu'on vient de créer vers le dossier de config du conteneur
+# Configuration Caddy
 COPY Caddyfile /etc/caddy/Caddyfile
 
-
-# --- ÉTAPE ASSETS ---
+# --- ASSETS ---
 RUN php bin/console importmap:install
-# ON SUPPRIME la ligne "tailwind:install" qui n'existe pas.
-
-# IMPORTANT : On retire le "|| echo" pour voir si le build plante
 RUN php bin/console tailwind:build --minify
-
-# Installation finale
 RUN php bin/console assets:install public
-
-# 4. Compile et écrit les fichiers versionnés (avec les hashs) dans public/assets/
 RUN php bin/console asset-map:compile
 
+# Nettoyage et préchauffage du cache
 RUN php bin/console cache:clear
 RUN php bin/console cache:warmup
 
-# Copie du script d'initialisation
-COPY docker-entrypoint.sh /usr/local/bin/
+# --- CORRECTION DE L'ENTRYPOINT ---
+# On copie le fichier vers le bon chemin
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# On le rend exécutable
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Lancement du serveur via le script d'initialisation
+# Lancement
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
