@@ -1,6 +1,9 @@
 # Étape 1 : Image de base FrankenPHP
 FROM dunglas/frankenphp
 
+# Force l'environnement de production immédiatement
+ENV APP_ENV=prod
+
 # Installation des extensions PHP requises
 RUN install-php-extensions \
     pdo_pgsql \
