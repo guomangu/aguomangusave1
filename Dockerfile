@@ -3,7 +3,8 @@ FROM dunglas/frankenphp
 
 # Configuration de l'environnement
 ENV APP_ENV=prod
-ENV FRANKENPHP_CONFIG="worker ./public/index.php"
+# --- CORRECTION ICI : On retire "worker" pour passer en mode standard (stable) ---
+ENV FRANKENPHP_CONFIG="./public/index.php"
 ENV SERVER_NAME=":80"
 
 # Installation des extensions PHP requises
@@ -22,7 +23,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # On copie les fichiers de dépendances DEPUIS le dossier 'app/' vers la racine du conteneur
 COPY app/composer.* ./
-# On essaie de copier symfony.lock s'il existe (via wildcard pour éviter l'erreur)
+# On essaie de copier symfony.lock s'il existe
 COPY app/symfony.* ./
 
 # Installation des dépendances PHP
@@ -36,8 +37,7 @@ RUN mkdir -p var/cache var/log && \
     chmod -R 777 var/
 
 # --- ÉTAPE ASSETS (TAILWIND & JS) ---
-# 1. Installation des dépendances JavaScript (Stimulus, Turbo, etc.)
-# C'est cette ligne qui manquait pour corriger l'erreur :
+# 1. Installation des dépendances JavaScript
 RUN php bin/console importmap:install
 
 # 2. Installation et compilation de Tailwind
