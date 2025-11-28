@@ -19,7 +19,7 @@ class Agenda
     #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $start = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(name: '"end"', type: 'datetime')]
     private ?\DateTimeInterface $end = null;
 
     #[ORM\ManyToOne(inversedBy: 'agendas')]

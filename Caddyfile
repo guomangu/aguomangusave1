@@ -9,6 +9,12 @@
 	# Active la compression pour que le site soit plus rapide
 	encode zstd gzip
 	
-	# Active le serveur PHP
+	# Servir les fichiers uploads directement (avant PHP)
+	@uploads {
+		path /uploads/*
+	}
+	file_server @uploads
+	
+	# Active le serveur PHP pour le reste
 	php_server
 }
