@@ -36,12 +36,14 @@ RUN mkdir -p var/cache var/log && \
 # On copie le Caddyfile qu'on vient de créer vers le dossier de config du conteneur
 COPY Caddyfile /etc/caddy/Caddyfile
 
+
 # --- ÉTAPE ASSETS ---
 RUN php bin/console importmap:install
-RUN php bin/console tailwind:install --no-interaction || true
-RUN php bin/console tailwind:build --minify || echo "Tailwind build skipped"
+# IMPORTANT : On retire le "|| true" pour voir si l'installation plante
+RUN php bin/console tailwind:install --no-interaction
+# IMPORTANT : On retire le "|| echo" pour voir si le build plante
+RUN php bin/console tailwind:build --minify
 RUN php bin/console assets:install public
-RUN php bin/console cache:clear
 
 # Lancement du serveur
 CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
