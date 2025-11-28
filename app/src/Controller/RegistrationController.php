@@ -27,6 +27,11 @@ class RegistrationController extends AbstractController
     #[Route('/register', name: 'app_register')]
     public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, Security $security, EntityManagerInterface $entityManager): Response
     {
+        // S'assurer que la session est initialisée pour le CSRF token
+        if ($request->hasSession()) {
+            $request->getSession()->start();
+        }
+        
         $user = new Utilisateurs();
         $form = $this->createForm(RegistrationFormType::class, $user);
         $form->handleRequest($request);

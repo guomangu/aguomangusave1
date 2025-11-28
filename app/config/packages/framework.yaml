@@ -19,11 +19,14 @@ when@prod:
         session:
             # Configuration de la session pour la production
             cookie_secure: auto  # Secure automatique si HTTPS
-            cookie_samesite: lax  # Protection CSRF
+            cookie_samesite: lax  # Protection CSRF (lax fonctionne mieux que strict)
             cookie_httponly: true
+            cookie_lifetime: 0  # Session cookie (expire à la fermeture du navigateur)
             # Utiliser les fichiers pour stocker les sessions (ou redis/memcached en production)
             handler_id: session.handler.native_file
             save_path: '%kernel.project_dir%/var/sessions'
             gc_maxlifetime: 3600
             gc_probability: 1
             gc_divisor: 100
+            # S'assurer que la session est toujours disponible
+            cookie_path: /

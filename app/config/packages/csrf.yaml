@@ -1,11 +1,7 @@
-# Enable stateless CSRF protection for forms and logins/logouts
+# CSRF protection basée sur la session (plus fiable en production)
 framework:
     form:
         csrf_protection:
+            enabled: true
+            field_name: '_token'
             token_id: submit
-
-    csrf_protection:
-        stateless_token_ids:
-            - submit
-            - authenticate
-            - logout

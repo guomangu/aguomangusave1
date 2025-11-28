@@ -25,6 +25,11 @@ class WikiController extends AbstractController
     public function index(Request $request, EntityManagerInterface $em): Response
     {
         try {
+            // S'assurer que la session est initialisée pour le CSRF token
+            if ($request->hasSession()) {
+                $request->getSession()->start();
+            }
+            
             $page = new WikiPage();
             $form = $this->createForm(WikiPageType::class, $page);
             $form->handleRequest($request);
