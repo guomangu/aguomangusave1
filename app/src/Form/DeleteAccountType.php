@@ -35,3 +35,4 @@ class DeleteAccountType extends AbstractType
     }
 }
 
+

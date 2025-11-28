@@ -18,3 +18,4 @@ class ForumRepository extends ServiceEntityRepository
 }
 
 
+
