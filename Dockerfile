@@ -1,11 +1,6 @@
 # Étape 1 : Image de base FrankenPHP
 FROM dunglas/frankenphp
 
-# Configuration de l'environnement
-ENV APP_ENV=prod
-# --- CORRECTION ICI : On retire "worker" pour passer en mode standard (stable) ---
-ENV FRANKENPHP_CONFIG="./public/index.php"
-ENV SERVER_NAME=":80"
 
 # Installation des extensions PHP requises
 RUN install-php-extensions \
