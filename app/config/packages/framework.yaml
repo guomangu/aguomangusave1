@@ -13,3 +13,17 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+
+when@prod:
+    framework:
+        session:
+            # Configuration de la session pour la production
+            cookie_secure: auto  # Secure automatique si HTTPS
+            cookie_samesite: lax  # Protection CSRF
+            cookie_httponly: true
+            # Utiliser les fichiers pour stocker les sessions (ou redis/memcached en production)
+            handler_id: session.handler.native_file
+            save_path: '%kernel.project_dir%/var/sessions'
+            gc_maxlifetime: 3600
+            gc_probability: 1
+            gc_divisor: 100

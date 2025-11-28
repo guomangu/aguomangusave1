@@ -27,12 +27,12 @@ class RegistrationController extends AbstractController
     #[Route('/register', name: 'app_register')]
     public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, Security $security, EntityManagerInterface $entityManager): Response
     {
-        try {
-            $user = new Utilisateurs();
-            $form = $this->createForm(RegistrationFormType::class, $user);
-            $form->handleRequest($request);
+        $user = new Utilisateurs();
+        $form = $this->createForm(RegistrationFormType::class, $user);
+        $form->handleRequest($request);
 
-            if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
                 /** @var string $plainPassword */
                 $plainPassword = $form->get('plainPassword')->getData();
 
@@ -43,26 +43,61 @@ class RegistrationController extends AbstractController
                 $entityManager->flush();
 
                 // generate a signed url and email it to the user
-                $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
-                    (new TemplatedEmail())
-                        ->from(new Address('mailer@after.com', 'gubot'))
-                        ->to((string) $user->getEmail())
-                        ->subject('Please Confirm your Email')
-                        ->htmlTemplate('registration/confirmation_email.html.twig')
-                );
-
-                // do anything else you need here, like send an email
+                try {
+                    $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
+                        (new TemplatedEmail())
+                            ->from(new Address('mailer@after.com', 'gubot'))
+                            ->to((string) $user->getEmail())
+                            ->subject('Please Confirm your Email')
+                            ->htmlTemplate('registration/confirmation_email.html.twig')
+                    );
+                } catch (\Exception $e) {
+                    // Si l'envoi d'email échoue, on continue quand même
+                    // L'utilisateur est créé, on peut juste logger l'erreur
+                }
 
                 return $security->login($user, AuthentificatorAuthenticator::class, 'main');
+            } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+                $this->addFlash('error', 'La base de données n\'est pas encore initialisée. Veuillez contacter l\'administrateur.');
+                return $this->redirectToRoute('app_home');
+            } catch (\Doctrine\DBAL\Exception $e) {
+                // Capturer toutes les erreurs Doctrine/DBAL
+                $errorCode = $e->getCode();
+                $errorMessage = $e->getMessage();
+                
+                // Vérifier si c'est une erreur de table manquante (PostgreSQL)
+                if ($errorCode === '42P01' || str_contains($errorMessage, 'does not exist') || str_contains($errorMessage, 'relation')) {
+                    $this->addFlash('error', 'La base de données n\'est pas encore initialisée. Veuillez contacter l\'administrateur.');
+                    return $this->redirectToRoute('app_home');
+                }
+                
+                // Autres erreurs de base de données (contraintes, etc.)
+                if (str_contains($errorMessage, 'UNIQUE') || str_contains($errorMessage, 'duplicate')) {
+                    $this->addFlash('error', 'Cet email ou ce pseudo est déjà utilisé.');
+                } else {
+                    // Logger l'erreur pour déboguer
+                    error_log('Erreur lors de la création du compte: ' . $errorMessage);
+                    $this->addFlash('error', 'Une erreur est survenue lors de la création du compte. Veuillez réessayer.');
+                }
+                
+                // On reste sur la page d'inscription pour que l'utilisateur puisse réessayer
+                return $this->render('registration/register.html.twig', [
+                    'registrationForm' => $form,
+                ]);
+            } catch (\Exception $e) {
+                // Autres erreurs inattendues
+                error_log('Erreur inattendue lors de la création du compte: ' . $e->getMessage());
+                $this->addFlash('error', 'Une erreur inattendue est survenue. Veuillez réessayer.');
+                
+                return $this->render('registration/register.html.twig', [
+                    'registrationForm' => $form,
+                ]);
             }
-
-            return $this->render('registration/register.html.twig', [
-                'registrationForm' => $form,
-            ]);
-        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
-            $this->addFlash('error', 'La base de données n\'est pas encore initialisée. Veuillez contacter l\'administrateur.');
-            return $this->redirectToRoute('app_home');
         }
+
+        return $this->render('registration/register.html.twig', [
+            'registrationForm' => $form,
+        ]);
     }
 
     #[Route('/verify/email', name: 'app_verify_email')]

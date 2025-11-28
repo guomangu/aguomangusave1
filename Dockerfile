@@ -33,8 +33,8 @@ RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --optimiz
 # Copie du reste du code
 COPY app/ .
 
-# Création des dossiers de cache
-RUN mkdir -p var/cache var/log && \
+# Création des dossiers de cache et sessions
+RUN mkdir -p var/cache var/log var/sessions && \
     chmod -R 777 var/
 
 # --- CONFIGURATION DU SERVEUR (La partie ajoutée) ---

@@ -41,9 +41,11 @@ class WikiCalendarSubscriber implements EventSubscriberInterface
 
         try {
             // Récupère tous les patterns de ce wiki (via son id)
+            // Utilisation de p.wikiPage = :wikiPage au lieu de IDENTITY() pour meilleure compatibilité
+            $wikiPage = $this->patternRepository->getEntityManager()->getReference(\App\Entity\WikiPage::class, $wikiId);
             $patterns = $this->patternRepository->createQueryBuilder('p')
-                ->andWhere('IDENTITY(p.wikiPage) = :wikiId')
-                ->setParameter('wikiId', $wikiId)
+                ->andWhere('p.wikiPage = :wikiPage')
+                ->setParameter('wikiPage', $wikiPage)
                 ->getQuery()
                 ->getResult();
         } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
