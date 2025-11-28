@@ -4,6 +4,11 @@ FROM dunglas/frankenphp
 # Force l'environnement de production immédiatement
 ENV APP_ENV=prod
 
+# --- CORRECTION ICI ---
+# On installe curl et ca-certificates pour pouvoir télécharger le binaire Tailwind
+RUN apt-get update && apt-get install -y curl git unzip ca-certificates
+# ----------------------
+    
 # Installation des extensions PHP requises
 RUN install-php-extensions \
     pdo_pgsql \
