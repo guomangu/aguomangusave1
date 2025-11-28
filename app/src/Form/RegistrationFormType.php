@@ -8,6 +8,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -19,10 +20,30 @@ class RegistrationFormType extends AbstractType
         $builder
             ->add('email', null, [
                 'label' => 'Email',
+                'required' => true,
+                'constraints' => [
+                    new NotBlank([
+                        'message' => 'Veuillez entrer un email',
+                    ]),
+                    new Email([
+                        'message' => 'Veuillez entrer un email valide',
+                    ]),
+                ],
             ])
             ->add('pseudo', null, [
                 'label' => 'Pseudo',
                 'required' => true,
+                'constraints' => [
+                    new NotBlank([
+                        'message' => 'Veuillez entrer un pseudo',
+                    ]),
+                    new Length([
+                        'min' => 2,
+                        'max' => 100,
+                        'minMessage' => 'Le pseudo doit contenir au moins {{ limit }} caractères',
+                        'maxMessage' => 'Le pseudo ne peut pas dépasser {{ limit }} caractères',
+                    ]),
+                ],
                 'attr' => [
                     'placeholder' => 'Choisissez un pseudo unique',
                 ],

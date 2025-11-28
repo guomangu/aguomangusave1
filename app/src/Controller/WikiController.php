@@ -29,6 +29,22 @@ class WikiController extends AbstractController
             $form = $this->createForm(WikiPageType::class, $page);
             $form->handleRequest($request);
 
+            if ($form->isSubmitted()) {
+                if (!$form->isValid()) {
+                    // Logger les erreurs de validation pour déboguer
+                    $errors = [];
+                    foreach ($form->getErrors(true) as $error) {
+                        $errors[] = $error->getMessage();
+                    }
+                    error_log('Erreurs de validation du formulaire Wiki: ' . json_encode($errors));
+                    
+                    // Afficher les erreurs dans les flash messages
+                    foreach ($form->getErrors(true) as $error) {
+                        $this->addFlash('error', $error->getMessage());
+                    }
+                }
+            }
+
             if ($form->isSubmitted() && $form->isValid()) {
                 if (method_exists($page, 'setCreatedAt')) {
                     $page->setCreatedAt(new \DateTimeImmutable());

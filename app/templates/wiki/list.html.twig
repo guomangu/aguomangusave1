@@ -10,6 +10,19 @@
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-xl font-semibold mb-4">Créer une nouvelle page</h2>
 
+            {% for flash_error in app.flashes('error') %}
+                <div class="mb-4 text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+                    {{ flash_error }}
+                </div>
+            {% endfor %}
+
+            {% if not form.vars.valid %}
+                <div class="mb-4 text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+                    <strong>Erreurs de validation :</strong>
+                    {{ form_errors(form) }}
+                </div>
+            {% endif %}
+
             {{ form_start(form) }}
                 <div class="space-y-4">
                     {{ form_row(form.title) }}

@@ -31,6 +31,22 @@ class RegistrationController extends AbstractController
         $form = $this->createForm(RegistrationFormType::class, $user);
         $form->handleRequest($request);
 
+        if ($form->isSubmitted()) {
+            if (!$form->isValid()) {
+                // Logger les erreurs de validation pour déboguer
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[] = $error->getMessage();
+                }
+                error_log('Erreurs de validation du formulaire: ' . json_encode($errors));
+                
+                // Afficher les erreurs dans les flash messages
+                foreach ($form->getErrors(true) as $error) {
+                    $this->addFlash('error', $error->getMessage());
+                }
+            }
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 /** @var string $plainPassword */
@@ -38,6 +54,11 @@ class RegistrationController extends AbstractController
 
                 // encode the plain password
                 $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
+                
+                // Initialiser les rôles si ce n'est pas déjà fait
+                if (empty($user->getRoles())) {
+                    $user->setRoles([]);
+                }
 
                 $entityManager->persist($user);
                 $entityManager->flush();
