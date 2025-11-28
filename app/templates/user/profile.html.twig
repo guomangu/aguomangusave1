@@ -58,6 +58,68 @@
             </a>
         </div>
 
+        {# Créneaux réservés par les clients sur mes wikis #}
+        <div class="mt-8 border-t pt-6">
+            <h2 class="text-lg font-semibold mb-4">Créneaux réservés sur mes wikis</h2>
+            
+            {% if reservationsOnMyWikis is empty %}
+                <p class="text-gray-500 text-sm mb-4">Aucun créneau réservé pour l'instant sur vos wikis.</p>
+            {% else %}
+                <div class="space-y-3">
+                    {% for reservation in reservationsOnMyWikis %}
+                        {% set creneauUrl = null %}
+                        {% if reservation.slotPattern and reservation.wikiPage %}
+                            {% set creneauUrl = path('app_creneau_show', {
+                                wikiId: reservation.wikiPage.id,
+                                patternId: reservation.slotPattern.id,
+                                start: reservation.start|date('Y-m-d\\TH:i:s')
+                            }) %}
+                        {% endif %}
+                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 {% if creneauUrl %}hover:bg-gray-100 cursor-pointer transition{% endif %}">
+                            {% if creneauUrl %}
+                                <a href="{{ creneauUrl }}" class="block">
+                            {% endif %}
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-800 mb-1 {% if creneauUrl %}text-blue-600 hover:underline{% endif %}">
+                                        {{ reservation.title }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 mb-2">
+                                        <span class="font-medium">Date :</span>
+                                        {{ reservation.start|date('d/m/Y à H:i') }} → {{ reservation.end|date('H:i') }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 mb-2">
+                                        <span class="font-medium">Wiki :</span>
+                                        <a href="{{ path('app_wiki_show', {id: reservation.wikiPage.id}) }}" 
+                                           class="text-blue-600 hover:underline"
+                                           onclick="event.stopPropagation();">
+                                            {{ reservation.wikiPage.title }}
+                                        </a>
+                                    </div>
+                                    {% if reservation.user %}
+                                        <div class="text-sm text-gray-600">
+                                            <span class="font-medium">Réservé par :</span>
+                                            <span class="ml-1">
+                                                {{ reservation.user.pseudo ?: reservation.user.email }}
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-sm text-gray-500 italic">
+                                            <span class="font-medium">Réservé par :</span>
+                                            <span class="ml-1">Utilisateur supprimé</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if creneauUrl %}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
         <div class="mt-8 border-t pt-6">
             <h2 class="text-lg font-semibold mb-4 text-red-600">Zone de danger</h2>
             <div class="p-4 bg-red-50 rounded-md border border-red-200">

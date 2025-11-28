@@ -356,11 +356,11 @@
                     <h2 class="text-xl font-semibold mb-4">Ajouter une routine de créneaux</h2>
                     {{ form_start(agendaForm) }}
                         <div class="space-y-4">
-                            {{ form_row(agendaForm.title) }}
-                            {{ form_row(agendaForm.startTime) }}
-                            {{ form_row(agendaForm.endTime) }}
-                            {{ form_row(agendaForm.daysOfWeek) }}
-                            {{ form_row(agendaForm.capacity) }}
+                            {{ form_row(agendaForm.children.title) }}
+                            {{ form_row(agendaForm.children.startTime) }}
+                            {{ form_row(agendaForm.children.endTime) }}
+                            {{ form_row(agendaForm.children.daysOfWeek) }}
+                            {{ form_row(agendaForm.children.capacity) }}
                         </div>
                         <button class="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
                             Enregistrer la routine
@@ -480,6 +480,25 @@
                             console.error(error);
                             failureCallback(error);
                         });
+                },
+                eventClick: function(info) {
+                    // Empêche la navigation par défaut (vers l'URL de l'événement)
+                    info.jsEvent.preventDefault();
+                    
+                    // Extrait les paramètres de l'URL de l'événement
+                    const eventUrl = new URL(info.event.url, window.location.origin);
+                    const wikiId = eventUrl.searchParams.get('wikiId');
+                    const patternId = eventUrl.searchParams.get('patternId');
+                    const start = eventUrl.searchParams.get('start');
+                    
+                    // Redirige vers la page de détail du créneau
+                    if (wikiId && patternId && start) {
+                        const detailUrl = new URL('/creneau', window.location.origin);
+                        detailUrl.searchParams.set('wikiId', wikiId);
+                        detailUrl.searchParams.set('patternId', patternId);
+                        detailUrl.searchParams.set('start', start);
+                        window.location.href = detailUrl.toString();
+                    }
                 }
             });
 

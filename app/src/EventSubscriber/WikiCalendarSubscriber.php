@@ -148,7 +148,7 @@ class WikiCalendarSubscriber implements EventSubscriberInterface
 
                 $calEvent->addOption(
                     'url',
-                    $this->router->generate('app_agenda_book', [
+                    $this->router->generate('app_creneau_show', [
                         'wikiId' => $wikiId,
                         'patternId' => $pattern->getId(),
                         'start' => $occurrenceStart->format('Y-m-d\TH:i:s'),

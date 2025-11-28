@@ -97,11 +97,18 @@ class UserController extends AbstractController
             ['id' => 'DESC'],
             30
         );
-        $reservations = $em->getRepository(Agenda::class)->findBy(
-            ['user' => $user],
-            ['start' => 'DESC'],
-            30
-        );
+        // Charger les réservations avec slotPattern pour pouvoir créer des liens
+        $reservations = $em->getRepository(Agenda::class)->createQueryBuilder('a')
+            ->leftJoin('a.slotPattern', 'sp')
+            ->addSelect('sp')
+            ->leftJoin('a.wikiPage', 'w')
+            ->addSelect('w')
+            ->where('a.user = :user')
+            ->setParameter('user', $user)
+            ->orderBy('a.start', 'DESC')
+            ->setMaxResults(30)
+            ->getQuery()
+            ->getResult();
 
         // Calculer les statistiques
         $stats = $user->getAllStats($messageRepository, $notificationRepository);
@@ -169,10 +176,67 @@ class UserController extends AbstractController
             return $this->redirectToRoute('app_home');
         }
 
+        // Récupérer les créneaux réservés par les clients sur les wikis dont l'utilisateur est propriétaire
+        // On récupère d'abord les IDs des réservations
+        $reservationIds = $em->getRepository(Agenda::class)->createQueryBuilder('a')
+            ->select('a.id')
+            ->join('a.wikiPage', 'w')
+            ->where('w.owner = :owner')
+            ->setParameter('owner', $user)
+            ->orderBy('a.start', 'DESC')
+            ->setMaxResults(50)
+            ->getQuery()
+            ->getResult();
+
+        // Récupérer les réservations avec leurs utilisateurs (si ils existent encore)
+        $reservationsOnMyWikis = [];
+        if (!empty($reservationIds)) {
+            $ids = array_column($reservationIds, 'id');
+            $reservations = $em->getRepository(Agenda::class)->createQueryBuilder('a')
+                ->leftJoin('a.user', 'u')
+                ->addSelect('u')
+                ->leftJoin('a.wikiPage', 'w')
+                ->addSelect('w')
+                ->leftJoin('a.slotPattern', 'sp')
+                ->addSelect('sp')
+                ->where('a.id IN (:ids)')
+                ->setParameter('ids', $ids)
+                ->orderBy('a.start', 'DESC')
+                ->getQuery()
+                ->getResult();
+
+            // Filtrer et gérer les utilisateurs supprimés
+            foreach ($reservations as $reservation) {
+                try {
+                    // Tenter d'accéder à l'utilisateur pour vérifier s'il existe
+                    $reservationUser = $reservation->getUser();
+                    if ($reservationUser !== null) {
+                        // Vérifier que l'utilisateur existe vraiment dans la base
+                        // En accédant à une propriété, on force Doctrine à charger l'entité
+                        $userId = $reservationUser->getId();
+                        $userExists = $em->getRepository(Utilisateurs::class)->find($userId);
+                        if (!$userExists) {
+                            // L'utilisateur a été supprimé, on met user à null
+                            $reservation->setUser(null);
+                        }
+                    }
+                } catch (\Doctrine\ORM\EntityNotFoundException $e) {
+                    // L'utilisateur a été supprimé et Doctrine ne peut pas le charger
+                    // On met user à null
+                    $reservation->setUser(null);
+                } catch (\Exception $e) {
+                    // Autre erreur, on met user à null par sécurité
+                    $reservation->setUser(null);
+                }
+                $reservationsOnMyWikis[] = $reservation;
+            }
+        }
+
         return $this->render('user/profile.html.twig', [
             'user' => $user,
             'profileForm' => $form,
             'deleteForm' => $deleteForm,
+            'reservationsOnMyWikis' => $reservationsOnMyWikis,
         ]);
     }
 }

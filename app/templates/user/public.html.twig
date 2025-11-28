@@ -88,29 +88,47 @@
         <h2 class="text-xl font-semibold mb-3">Ses réservations de créneaux</h2>
 
         {% if reservations is empty %}
-            <p class="text-gray-500 mb-2 text-sm">Aucune réservation de créneau pour l’instant.</p>
+            <p class="text-gray-500 mb-2 text-sm">Aucune réservation de créneau pour l'instant.</p>
         {% else %}
-            <ul class="space-y-2">
+            <div class="space-y-3">
                 {% for r in reservations %}
-                    <li class="border rounded p-3 flex items-center justify-between text-sm">
-                        <div>
-                            <div class="font-semibold">
+                    {% set creneauUrl = null %}
+                    {% if r.slotPattern and r.wikiPage %}
+                        {% set creneauUrl = path('app_creneau_show', {
+                            wikiId: r.wikiPage.id,
+                            patternId: r.slotPattern.id,
+                            start: r.start|date('Y-m-d\\TH:i:s')
+                        }) %}
+                    {% endif %}
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 {% if creneauUrl %}hover:bg-gray-100 cursor-pointer transition shadow-sm hover:shadow-md{% endif %}">
+                        {% if creneauUrl %}
+                            <a href="{{ creneauUrl }}" class="block">
+                        {% endif %}
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-800 mb-2 {% if creneauUrl %}text-blue-600 hover:underline{% endif %}">
                                 {{ r.title }}
-                                {% if r.wikiPage %}
-                                    <span class="text-gray-500">sur</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-2">
+                                <span class="font-medium">Date :</span>
+                                <span class="ml-1">{{ r.start|date('d/m/Y à H:i') }} → {{ r.end|date('H:i') }}</span>
+                            </div>
+                            {% if r.wikiPage %}
+                                <div class="text-sm text-gray-600">
+                                    <span class="font-medium">Wiki :</span>
                                     <a href="{{ path('app_wiki_show', {id: r.wikiPage.id}) }}"
-                                       class="text-blue-600 hover:underline">
+                                       class="text-blue-600 hover:underline ml-1"
+                                       onclick="event.stopPropagation();">
                                         {{ r.wikiPage.title }}
                                     </a>
-                                {% endif %}
-                            </div>
-                            <div class="text-gray-600">
-                                {{ r.start|date('d/m/Y H:i') }} → {{ r.end|date('d/m/Y H:i') }}
-                            </div>
+                                </div>
+                            {% endif %}
                         </div>
-                    </li>
+                        {% if creneauUrl %}
+                            </a>
+                        {% endif %}
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         {% endif %}
     </div>
 

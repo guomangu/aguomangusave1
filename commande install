@@ -1,0 +1,5 @@
+cd app && composer install
+rm app/var/tailwind/v4.1.11/tailwindcss-linux-x64
+chmod +x app/var/tailwind/v4.1.11/tailwindcss-linux-x64
+./frankenphp-linux-x86_64 php-cli app/bin/console tailwind:build --watch -v
+./frankenphp-linux-x86_64 php-server --listen :8080 -r app/public/
