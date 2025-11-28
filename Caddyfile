@@ -1,0 +1,14 @@
+{
+	frankenphp
+}
+
+:80 {
+	# C'est ici qu'on dit à Caddy de regarder dans le dossier public
+	root * public/
+	
+	# Active la compression pour que le site soit plus rapide
+	encode zstd gzip
+	
+	# Active le serveur PHP
+	php_server
+}

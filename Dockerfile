@@ -1,7 +1,6 @@
 # Étape 1 : Image de base FrankenPHP
 FROM dunglas/frankenphp
 
-
 # Installation des extensions PHP requises
 RUN install-php-extensions \
     pdo_pgsql \
@@ -10,39 +9,35 @@ RUN install-php-extensions \
     opcache \
     apcu
 
-# Définition du dossier de travail dans le conteneur
+# Définition du dossier de travail
 WORKDIR /app
 
 # Copie de Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# On copie les fichiers de dépendances DEPUIS le dossier 'app/' vers la racine du conteneur
+# Copie des fichiers de dépendances (depuis le dossier app/)
 COPY app/composer.* ./
-# On essaie de copier symfony.lock s'il existe
 COPY app/symfony.* ./
 
-# Installation des dépendances PHP
+# Installation des dépendances
 RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --optimize-autoloader
 
-# On copie tout le reste du code DEPUIS le dossier 'app/'
+# Copie du reste du code
 COPY app/ .
 
 # Création des dossiers de cache
 RUN mkdir -p var/cache var/log && \
     chmod -R 777 var/
 
-# --- ÉTAPE ASSETS (TAILWIND & JS) ---
-# 1. Installation des dépendances JavaScript
-RUN php bin/console importmap:install
+# --- CONFIGURATION DU SERVEUR (La partie ajoutée) ---
+# On copie le Caddyfile qu'on vient de créer vers le dossier de config du conteneur
+COPY Caddyfile /etc/caddy/Caddyfile
 
-# 2. Installation et compilation de Tailwind
+# --- ÉTAPE ASSETS ---
+RUN php bin/console importmap:install
 RUN php bin/console tailwind:install --no-interaction || true
 RUN php bin/console tailwind:build --minify || echo "Tailwind build skipped"
-
-# 3. Installation finale des assets dans le dossier public
 RUN php bin/console assets:install public
-
-# Nettoyage final du cache
 RUN php bin/console cache:clear
 
 # Lancement du serveur
