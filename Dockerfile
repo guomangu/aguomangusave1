@@ -48,7 +48,15 @@ RUN php bin/console importmap:install
 
 # IMPORTANT : On retire le "|| echo" pour voir si le build plante
 RUN php bin/console tailwind:build --minify
+
+# Installation finale
 RUN php bin/console assets:install public
+
+# 4. Compile et écrit les fichiers versionnés (avec les hashs) dans public/assets/
+RUN php bin/console asset-map:compile
+
+RUN php bin/console cache:clear
+RUN php bin/console cache:warmup
 
 # Lancement du serveur
 CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
