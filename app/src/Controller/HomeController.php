@@ -18,36 +18,48 @@ final class HomeController extends AbstractController
 
         $results = [];
         $tagResults = [];
-        if ($query !== '') {
-            $qb = $wikiRepo->createQueryBuilder('w')
-                ->andWhere('LOWER(w.title) LIKE :q')
-                ->setParameter('q', '%'.mb_strtolower($query).'%')
-                ->setMaxResults(20);
+        $tagsWithParents = [];
+        
+        try {
+            if ($query !== '') {
+                $qb = $wikiRepo->createQueryBuilder('w')
+                    ->andWhere('LOWER(w.title) LIKE :q')
+                    ->setParameter('q', '%'.mb_strtolower($query).'%')
+                    ->setMaxResults(20);
 
-            $results = $qb->getQuery()->getResult();
+                $results = $qb->getQuery()->getResult();
 
-            $tq = $tagRepo->createQueryBuilder('t')
-                ->andWhere('LOWER(t.name) LIKE :q OR LOWER(t.description) LIKE :q')
-                ->setParameter('q', '%'.mb_strtolower($query).'%')
-                ->setMaxResults(20);
+                $tq = $tagRepo->createQueryBuilder('t')
+                    ->andWhere('LOWER(t.name) LIKE :q OR LOWER(t.description) LIKE :q')
+                    ->setParameter('q', '%'.mb_strtolower($query).'%')
+                    ->setMaxResults(20);
 
-            $tagResults = $tq->getQuery()->getResult();
-            
-            // Construire la hiérarchie des parents pour chaque tag
-            $tagsWithParents = [];
-            foreach ($tagResults as $tag) {
-                $parents = [];
-                $current = $tag->getParent();
-                while ($current) {
-                    $parents[] = $current;
-                    $current = $current->getParent();
+                $tagResults = $tq->getQuery()->getResult();
+                
+                // Construire la hiérarchie des parents pour chaque tag
+                foreach ($tagResults as $tag) {
+                    $parents = [];
+                    $current = $tag->getParent();
+                    while ($current) {
+                        $parents[] = $current;
+                        $current = $current->getParent();
+                    }
+                    // Inverser pour avoir du plus général au plus spécifique
+                    $parents = array_reverse($parents);
+                    $tagsWithParents[$tag->getId()] = $parents;
                 }
-                // Inverser pour avoir du plus général au plus spécifique
-                $parents = array_reverse($parents);
-                $tagsWithParents[$tag->getId()] = $parents;
             }
-        } else {
-            $tagsWithParents = [];
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            // Si les tables n'existent pas, on continue avec des résultats vides
+            // L'EventSubscriber gérera l'affichage si nécessaire
+        } catch (\Exception $e) {
+            // Pour les autres erreurs de base de données (comme SQLSTATE[42P01] de PostgreSQL)
+            if (str_contains($e->getMessage(), 'does not exist') || $e->getCode() === '42P01') {
+                // Tables manquantes, on continue avec des résultats vides
+            } else {
+                // Autre erreur, on la laisse remonter
+                throw $e;
+            }
         }
 
         return $this->render('home/index.html.twig', [

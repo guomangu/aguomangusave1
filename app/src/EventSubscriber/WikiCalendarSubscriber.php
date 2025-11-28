@@ -39,12 +39,25 @@ class WikiCalendarSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Récupère tous les patterns de ce wiki (via son id)
-        $patterns = $this->patternRepository->createQueryBuilder('p')
-            ->andWhere('IDENTITY(p.wikiPage) = :wikiId')
-            ->setParameter('wikiId', $wikiId)
-            ->getQuery()
-            ->getResult();
+        try {
+            // Récupère tous les patterns de ce wiki (via son id)
+            $patterns = $this->patternRepository->createQueryBuilder('p')
+                ->andWhere('IDENTITY(p.wikiPage) = :wikiId')
+                ->setParameter('wikiId', $wikiId)
+                ->getQuery()
+                ->getResult();
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            // Si les tables n'existent pas, on retourne sans ajouter d'événements
+            return;
+        } catch (\Exception $e) {
+            // Pour les autres erreurs de base de données (comme SQLSTATE[42P01] de PostgreSQL)
+            if (str_contains($e->getMessage(), 'does not exist') || $e->getCode() === '42P01') {
+                // Tables manquantes, on retourne sans ajouter d'événements
+                return;
+            }
+            // Autre erreur, on la laisse remonter
+            throw $e;
+        }
 
         /** @var \App\Entity\AgendaSlotPattern $pattern */
         foreach ($patterns as $pattern) {
@@ -91,14 +104,27 @@ class WikiCalendarSubscriber implements EventSubscriberInterface
                 }
 
                 // Vérifie combien de réservations existent déjà pour ce pattern + ce créneau
-                $existingCount = $this->agendaRepository->createQueryBuilder('a')
-                    ->select('COUNT(a.id)')
-                    ->andWhere('a.slotPattern = :pattern')
-                    ->andWhere('a.start = :start')
-                    ->setParameter('pattern', $pattern)
-                    ->setParameter('start', $occurrenceStart)
-                    ->getQuery()
-                    ->getSingleScalarResult();
+                try {
+                    $existingCount = $this->agendaRepository->createQueryBuilder('a')
+                        ->select('COUNT(a.id)')
+                        ->andWhere('a.slotPattern = :pattern')
+                        ->andWhere('a.start = :start')
+                        ->setParameter('pattern', $pattern)
+                        ->setParameter('start', $occurrenceStart)
+                        ->getQuery()
+                        ->getSingleScalarResult();
+                } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+                    // Si les tables n'existent pas, on considère le créneau comme plein
+                    continue;
+                } catch (\Exception $e) {
+                    // Pour les autres erreurs de base de données
+                    if (str_contains($e->getMessage(), 'does not exist') || $e->getCode() === '42P01') {
+                        // Tables manquantes, on considère le créneau comme plein
+                        continue;
+                    }
+                    // Autre erreur, on la laisse remonter
+                    throw $e;
+                }
 
                 if ($existingCount >= $pattern->getCapacity()) {
                     // créneau plein, on peut soit ne pas l'afficher,

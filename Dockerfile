@@ -58,5 +58,9 @@ RUN php bin/console asset-map:compile
 RUN php bin/console cache:clear
 RUN php bin/console cache:warmup
 
-# Lancement du serveur
-CMD [ "frankenphp", "run", "--config", "/etc/caddy/Caddyfile" ]
+# Copie du script d'initialisation
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Lancement du serveur via le script d'initialisation
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -24,39 +24,46 @@ class WikiController extends AbstractController
     #[Route('/wiki', name: 'app_wiki_index', methods: ['GET', 'POST'])]
     public function index(Request $request, EntityManagerInterface $em): Response
     {
-        $page = new WikiPage();
-        $form = $this->createForm(WikiPageType::class, $page);
-        $form->handleRequest($request);
+        try {
+            $page = new WikiPage();
+            $form = $this->createForm(WikiPageType::class, $page);
+            $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            if (method_exists($page, 'setCreatedAt')) {
-                $page->setCreatedAt(new \DateTimeImmutable());
-            }
-
-            $imageFile = $form->get('imageFile')->getData();
-            if ($imageFile) {
-                $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/wiki';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0775, true);
+            if ($form->isSubmitted() && $form->isValid()) {
+                if (method_exists($page, 'setCreatedAt')) {
+                    $page->setCreatedAt(new \DateTimeImmutable());
                 }
 
-                $newFilename = uniqid('wiki_', true) . '.' . $imageFile->guessExtension();
-                $imageFile->move($uploadDir, $newFilename);
-                $page->setImage('/uploads/wiki/' . $newFilename);
+                $imageFile = $form->get('imageFile')->getData();
+                if ($imageFile) {
+                    $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/wiki';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0775, true);
+                    }
+
+                    $newFilename = uniqid('wiki_', true) . '.' . $imageFile->guessExtension();
+                    $imageFile->move($uploadDir, $newFilename);
+                    $page->setImage('/uploads/wiki/' . $newFilename);
+                }
+
+                $em->persist($page);
+                $em->flush();
+
+                return $this->redirectToRoute('app_wiki_show', ['id' => $page->getId()]);
             }
 
-            $em->persist($page);
-            $em->flush();
+            $pages = $em->getRepository(WikiPage::class)->findBy([], ['id' => 'DESC'], 30);
 
-            return $this->redirectToRoute('app_wiki_show', ['id' => $page->getId()]);
+            return $this->render('wiki/list.html.twig', [
+                'pages' => $pages,
+                'form' => $form,
+            ]);
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            // Si la table n'existe pas, afficher une page vide
+            return $this->render('wiki/empty.html.twig', [
+                'message' => 'La base de données n\'est pas encore initialisée. Veuillez contacter l\'administrateur.',
+            ]);
         }
-
-        $pages = $em->getRepository(WikiPage::class)->findBy([], ['id' => 'DESC'], 30);
-
-        return $this->render('wiki/list.html.twig', [
-            'pages' => $pages,
-            'form' => $form,
-        ]);
     }
 
     // 1. LE CHEATCODE "CREATE"
