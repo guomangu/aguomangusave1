@@ -8,7 +8,7 @@ ENV APP_ENV=prod
 # On installe curl et ca-certificates pour pouvoir télécharger le binaire Tailwind
 RUN apt-get update && apt-get install -y curl git unzip ca-certificates
 # ----------------------
-    
+
 # Installation des extensions PHP requises
 RUN install-php-extensions \
     pdo_pgsql \
@@ -44,8 +44,8 @@ COPY Caddyfile /etc/caddy/Caddyfile
 
 # --- ÉTAPE ASSETS ---
 RUN php bin/console importmap:install
-# IMPORTANT : On retire le "|| true" pour voir si l'installation plante
-RUN php bin/console tailwind:install --no-interaction
+# ON SUPPRIME la ligne "tailwind:install" qui n'existe pas.
+
 # IMPORTANT : On retire le "|| echo" pour voir si le build plante
 RUN php bin/console tailwind:build --minify
 RUN php bin/console assets:install public
