@@ -12,8 +12,11 @@ run_migrations() {
     echo "[Migrations] Test de connexion à la base de données..."
 
     while [ $attempt -le $max_attempts ]; do
-        # --- CORRECTION ICI : On utilise dbal:run-sql au lieu de query:sql ---
-        if php bin/console doctrine:dbal:run-sql "SELECT 1" > /dev/null 2>&1; then
+        # --- CORRECTION FINALE ---
+        # On utilise "database:create" avec "--if-not-exists".
+        # C'est une astuce fiable : pour vérifier si la DB existe, Symfony doit se connecter.
+        # Si la connexion échoue (timeout, mauvais mdp), la commande renvoie une erreur.
+        if php bin/console doctrine:database:create --connection=default --if-not-exists > /dev/null 2>&1; then
             echo "[Migrations] Connexion réussie à la tentative $attempt !"
             break
         fi
@@ -22,8 +25,8 @@ run_migrations() {
         if [ $attempt -eq 1 ] || [ $attempt -eq 10 ]; then
             echo "-----------------------------------------------------"
             echo "[DEBUG] La connexion a échoué. Voici l'erreur exacte :"
-            # On affiche l'erreur avec la nouvelle commande
-            php bin/console doctrine:dbal:run-sql "SELECT 1" || true
+            # On affiche l'erreur
+            php bin/console doctrine:database:create --connection=default --if-not-exists || true
             echo "-----------------------------------------------------"
         fi
         # ------------------
